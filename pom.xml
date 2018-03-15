@@ -8,7 +8,7 @@
 
     <artifactId>sscm-client</artifactId>
 
-    <packaging>jar</packaging>
+    <packaging>maven-plugin</packaging>
 
     <version>0.1.0</version>
 
