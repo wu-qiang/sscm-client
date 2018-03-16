@@ -44,12 +44,12 @@ init_keyring() {
 
   # Check if we have key for $GPG_AUTHORITY_NAME and generate if needed
 
-  $gpg_cmd --list-keys --with-colons
+  $gpg_cmd --list-keys
   if $gpg_cmd --list-keys --with-colons | grep ":${GPG_AUTHORITY_NAME}:" > /dev/null; then
     echo "Key for '$GPG_AUTHORITY_NAME' exists"
   else
     echo "Generating key for '$GPG_AUTHORITY_NAME', this may take a while ..."
-    echo "RSA" | $gpg_cmd --batch --no-tty --yes --passphrase "$GPG_PASSPHRASE" --quick-gen-key "$GPG_AUTHORITY_NAME"
+    echo "RSA" | $gpg_cmd --batch --no-tty --passphrase "$GPG_PASSPHRASE" --quick-gen-key "$GPG_AUTHORITY_NAME"
     if [ $? -eq 0 ] ; then
       echo "Key generated."
     else
