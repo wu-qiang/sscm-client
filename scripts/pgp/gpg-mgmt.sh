@@ -34,14 +34,17 @@ init_keyring() {
       echo "Can't create '$GPG_HOMEDIR'!"
       return 1
     }
-    chmod 700 $GPG_HOMEDIR || {
-      echo "Can't change mode 700 for '$GPG_HOMEDIR'!"
-      return 1
-    }
   fi
+
+  # for some reason, the mode change doesn't stick across pipelines
+  chmod 700 $GPG_HOMEDIR || {
+    echo "Can't change mode 700 for '$GPG_HOMEDIR'!"
+    return 1
+  }
 
   # Check if we have key for $GPG_AUTHORITY_NAME and generate if needed
 
+  $gpg_cmd --list-keys --with-colons
   if $gpg_cmd --list-keys --with-colons | grep ":${GPG_AUTHORITY_NAME}:" > /dev/null; then
     echo "Key for '$GPG_AUTHORITY_NAME' exists"
   else
