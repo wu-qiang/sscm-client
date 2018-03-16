@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 
 #
 # These environment variables come from Wercker environment.
@@ -50,7 +49,7 @@ init_keyring() {
     echo "Key for '$GPG_AUTHORITY_NAME' exists"
   else
     echo "Generating key for '$GPG_AUTHORITY_NAME', this may take a while ..."
-    echo "RSA" | $gpg_cmd --no-tty --yes --batch --passphrase foobar --quick-gen-key "projects/foobar/mumble/key2"
+    echo "RSA" | $gpg_cmd --batch --no-tty --yes --passphrase "$GPG_PASSPHRASE" --quick-gen-key "$GPG_AUTHORITY_NAME"
     if [ $? -eq 0 ] ; then
       echo "Key generated."
     else
