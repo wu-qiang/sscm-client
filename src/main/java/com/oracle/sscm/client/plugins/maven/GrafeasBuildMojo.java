@@ -81,7 +81,7 @@ public class GrafeasBuildMojo extends AbstractMojo {
             // Setup arguments from parameters...
             GrafeasUtilities utils = getUtils(false);
             if (!utils.doesBuildDetailsNoteExist(builderName)) {
-                utils.createBuildDetailsNote(builderName, projectName + ":" + builderName, builderDescription);
+                utils.createBuildDetailsNote(builderName, projectName + "-" + builderName, builderDescription);
                 log("\nCreated Build Details Note Metadata.");
             }
             String uniqueId = builderName + System.currentTimeMillis();
@@ -230,8 +230,13 @@ public class GrafeasBuildMojo extends AbstractMojo {
     private GrafeasUtilities getUtils(boolean isAttestation) {
 
         // Location of Grafeas API server
-        if (!grafeasUrl.equals("UNKNOWN")) {
-            if (!grafeasUrl.endsWith(URL_SLASH)) grafeasUrl += URL_SLASH;
+        if (grafeasUrl != null && !grafeasUrl.equals("UNKNOWN")) {
+            if (grafeasUrl != null && grafeasUrl.endsWith(URL_SLASH)) {
+                grafeasUrl = grafeasUrl.substring(0, grafeasUrl.length() - 1);
+            }
+            if (grafeasUrl.equals("http://:")) {
+                 grafeasUrl = null;
+            }
         }
 
         GrafeasUtilities utils = new GrafeasUtilities(grafeasUrl, projectName);

@@ -8,7 +8,7 @@
 
     <artifactId>sscm-client</artifactId>
 
-    <packaging>jar</packaging>
+    <packaging>maven-plugin</packaging>
 
     <version>0.1.0</version>
 
@@ -67,6 +67,27 @@
             <artifactId>grafeas-java-client</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>oauth2-oidc-sdk</artifactId>
+            <version>5.20</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+            <version>1.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.5.6</version>
+            <scope>provided</scope>
         </dependency>
 
     </dependencies>

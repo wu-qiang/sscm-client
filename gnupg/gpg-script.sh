@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GPG_HOME=$WERCKER_CACHE_DIR/gpghome
+GPG_HOME=$WERCKER_CACHE_DIR/gnupg
 KEY_UID="sscm@oracle.com"
 KEY_PASSPHRASE="passphrase"
 SIGN_RESULT=1
@@ -65,7 +65,7 @@ gpg_verify() {
   local encodedSig="$1"
   echo "$encodedSig" | base64 --decode | gpg --homedir $GPG_HOME -u $KEY_UID --verify
   if [ $? -eq 0 ]; then
-    #if [ "$result" == "$original_text" ]; then  
+    #if [ "$result" == "$original_text" ]; then
       #printf "Signature is both valid and matched\n"
       VERIFY_RESULT=$?
     #else
@@ -81,7 +81,7 @@ gpg_verify_and_match() {
   echo "$encodedSig" | base64 --decode | gpg --homedir $GPG_HOME -u $KEY_UID --decrypt --pinentry-mode loopback --passphrase $KEY_PASSPHRASE 2> /dev/null
   #gpg --homedir $GPG_HOME -k --keyid-format short $KEY_UID  2> /dev/null
   if [ $? -eq 0 ]; then
-    #if [ "$result" == "$original_text" ]; then  
+    #if [ "$result" == "$original_text" ]; then
       #printf "Signature is both valid and matched\n"
       VERIFY_RESULT=$?
     #else
@@ -96,14 +96,14 @@ gpg_get_public_key_id() {
 }
 
 gpg_key_id_from_base64_encoded_signature() {
-  local encodedSig="$1" 
-  local key_id=$(echo "$encodedSig" | base64 --decode | gpg --homedir $GPG_HOME -u $KEY_UID -q --no-tty --decrypt --pinentry-mode loopback --passphrase $KEY_PASSPHRASE 2>&1) 
+  local encodedSig="$1"
+  local key_id=$(echo "$encodedSig" | base64 --decode | gpg --homedir $GPG_HOME -u $KEY_UID -q --no-tty --decrypt --pinentry-mode loopback --passphrase $KEY_PASSPHRASE 2>&1)
 echo "key id:[$key_id]"
   # key's short id is the last 8 hex digits of its finger print
 }
 
 gpg_signed_data_from_base64_encoded_signature() {
-  local encodedSig="$1" 
+  local encodedSig="$1"
   echo "$encodedSig" | base64 --decode | gpg --homedir $GPG_HOME -u $KEY_UID --decrypt --pinentry-mode loopback --passphrase $KEY_PASSPHRASE 2> /dev/null
   # key's short id is the last 8 hex digits of its finger print
   #local in_file=$(mktemp)
@@ -133,10 +133,10 @@ print_usage() {
 
 rm -rf $GPG_HOME
 init
-if [ $# -lt 2 -o $# -gt 3 ] 
+if [ $# -lt 2 -o $# -gt 3 ]
 then
   print_usage
-elif [ $# -eq 2 ] 
+elif [ $# -eq 2 ]
 then
   if [ $1 == "-verify" ]
   then
@@ -148,16 +148,16 @@ then
   elif [ $1 == "-get_signed_data" ]
   then
     gpg_signed_data_from_base64_encoded_signature "$2"
-  fi  
-elif [ $# -eq 3 ] 
+  fi
+elif [ $# -eq 3 ]
 then
   if [ "$1" == "-sign" ]
   then
-    # Ignore the second argument, which is the key_uid for now 
+    # Ignore the second argument, which is the key_uid for now
     gpg_sign "$3"
     exit $SIGN_RESULT
   else
     print_usage
     exit 0
-  fi  
+  fi
 fi

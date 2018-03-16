@@ -1,0 +1,14 @@
+[
+    {
+        "name":"projects/build/attestationAuthorities/built",
+        "public_keys":["A798063D"]
+    },
+    {
+        "name":"projects/image-signing/attestationAuthorities/tested",
+        "public_keys":["BF09BC55","A798063D"]
+    },
+    {
+        "name":"projects/image-signing/attestationAuthorities/production",
+        "public_keys":["BF09BC55"]
+    }
+]
