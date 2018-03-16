@@ -69,9 +69,9 @@ print_usage() {
 }
 
 case "$1" in
-init)                   exit init_keyring ;;
-get_authority_names)    exit gpg_get_authority_names ;;
-get_authority_key)      exit gpg_get_authority_key "$1" ;;
+init)                   init_keyring || exit 1 ;;
+get_authority_names)    gpg_get_authority_names || exit 1 ;;
+get_authority_key)      gpg_get_authority_key "$1" || exit 1 ;;
 *)                      print_usage ; exit 1 ;;
 esac
 
