@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GPG_HOME=$WERCKER_CACHE_DIR/gpghome
+GPG_HOME=$WERCKER_CACHE_DIR/gnupg
 KEY_UID="sscm@oracle.com"
 KEY_PASSPHRASE="passphrase"
 SIGN_RESULT="1"
