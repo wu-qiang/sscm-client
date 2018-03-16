@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 #
 # These environment variables come from Wercker environment.
