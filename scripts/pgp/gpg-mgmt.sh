@@ -85,3 +85,5 @@ get_authority_key)      gpg_get_authority_key "$1" || exit 1 ;;
 *)                      print_usage ; exit 1 ;;
 esac
 
+exit 0
+
