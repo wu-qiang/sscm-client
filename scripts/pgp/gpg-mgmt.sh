@@ -9,7 +9,7 @@
 # GPG_PASSPHRASE
 #
 
-typeset gpg_cmd="gpg --homedir $GPG_HOMEDIR"
+typeset gpg_cmd="gpg --homedir $GPG_HOMEDIR --quiet"
 
 init_keyring() {
 
@@ -57,7 +57,7 @@ init_keyring() {
     fi
   fi
 
-  $gpg_cmd --quiet --list-keys
+  $gpg_cmd --list-keys
 
   return 0
 }
