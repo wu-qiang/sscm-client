@@ -1,47 +1,77 @@
 #!/bin/bash
 
-# These come from Wercker environment
+#
+# These environment variables come from Wercker environment.
+# Must be set before running script.
+#
 # GPG_HOMEDIR
 # GPG_ATTESTATION_AUTHORITY
 # GPG_PASSPHRASE
+#
 
-SIGN_RESULT=1
-VERIFY_RESULT=1
+typeset gpg_cmd="gpg --homedir $GPG_HOMEDIR"
 
-init() {
-  if [ -z "$WERCKER_CACHE_DIR" ]; then
-    printf "Variable WERCKER_CACHE_DIR is not set.  Exiting the script.\n"
-    exit 1
+init_keyring() {
+
+  # Check environment
+  if [ -z "$GPG_HOMEDIR" -o ! -d "$GPG_HOMEDIR" ] ; then
+    echo "GPG_HOMEDIR not set or not accessible!"
+    return 1
+  fi
+  if [ -z "$GPG_AUTHORITY_NAME" ] ; then
+    echo "GPG_AUTHORITY_NAME not set!"
+    return 1
+  fi
+  if [ -z "$GPG_PASSPHRASE" ] ; then
+    echo "GPG_PASSPHRASE not set!"
+    return 1
   fi
 
-  if [ ! -d "$WERCKER_CACHE_DIR" ]; then
-    printf "Directory $WERCKER_CACHE_DIR does not exist.  Exiting the script.\n"
-    exit 1
-  fi
-
+  # Make sure homedir is there
   if [ ! -d "$GPG_HOMEDIR" ]; then
-    #echo "Creating $GPG_HOMEDIR"
-    mkdir $GPG_HOMEDIR
-    chmod 600 $GPG_HOMEDIR
-    #ls -laF $WERCKER_CACHE_DIR
-    #ls -laF $GPG_HOMEDIR
-    #echo "Creating a pair of new keys in new dir"
-    gpg --homedir $GPG_HOMEDIR --quick-generate-key --batch --passphrase $GPG_PASSPHRASE --yes $GPG_AUTHORITY_NAME 2> /dev/null
-    gpg --homedir $GPG_HOMEDIR -k $GPG_AUTHORITY_NAME 2> /dev/null
-    chmod 600 $GPG_HOMEDIR
+    echo "Creating $GPG_HOMEDIR"
+    mkdir -p $GPG_HOMEDIR || return 1
+    chmod 700 $GPG_HOMEDIR || return 1
+  fi
+
+  # Check if we have key for $GPG_AUTHORITY_NAME and generate if needed
+
+  if $gpg_cmd --list-keys --with-colons | grep ":${GPG_AUTHORITY_NAME}:" > /dev/null; then
+    echo "Key for '$GPG_AUTHORITY_NAME' exists"
   else
-    #echo "$GPG_HOMEDIR exists"
-    # Wercker somehow resets the permission bits on $GPG_HOMEDIR everytime this script is called from the pipeline
-    # so we need to change it back to 600 to avoid the gpg permission WARNING
-    chmod 600 $GPG_HOMEDIR
-    #gpg --homedir $GPG_HOMEDIR -k --keyid-format short --with-colons $GPG_AUTHORITY_NAME
-    gpg --homedir $GPG_HOMEDIR -k $GPG_AUTHORITY_NAME 2>&1> /dev/null
-    if ! [ $? -eq 0 ]; then
-      # no keys found so create a new key pair
-      echo "Creating a pair of new keys"
-      gpg --homedir $GPG_HOMEDIR --quick-generate-key --batch --passphrase $GPG_PASSPHRASE --yes $GPG_AUTHORITY_NAME 2> /dev/null
-      gpg --homedir $GPG_HOMEDIR -k --with-colons 2> /dev/null
+    echo "Generating key for '$GPG_AUTHORITY_NAME', this may take a while ..."
+    echo "RSA" | $gpg_cmd --no-tty --yes --batch --passphrase foobar --quick-gen-key "projects/foobar/mumble/key2"
+    if [ $? -eq 0 ] ; then
+      echo "Key generated."
+    else
+      echo "Key generation failed!"
+      return 1
     fi
   fi
+
+  return 0
 }
+
+gpg_get_authority_names() {
+  echo "$GPG_AUTHORITY_NAME"
+  return 0
+}
+
+gpg_get_authority_key() {
+  # key's short id is the last 8 hex digits of its finger print
+  # this is a bit fragile, but works for now
+  $gpg_cmd --list-keys --with-colons $1 | grep pub:u:2048:1: | cut -c 22-29
+  return $?
+}
+
+print_usage() {
+  echo "USAGE: $0 {init|get_authority_names|get_authority_key <authority>}"
+}
+
+case "$1" in
+init)                   exit init_keyring ;;
+get_authority_names)    exit gpg_get_authority_names ;;
+get_authority_key)      exit gpg_get_authority_key "$1" ;;
+*)                      print_usage ; exit 1 ;;
+esac
 
