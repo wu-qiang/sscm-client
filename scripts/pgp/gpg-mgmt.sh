@@ -14,8 +14,8 @@ typeset gpg_cmd="gpg --homedir $GPG_HOMEDIR"
 init_keyring() {
 
   # Check environment
-  if [ -z "$GPG_HOMEDIR" -o ! -d "$GPG_HOMEDIR" ] ; then
-    echo "GPG_HOMEDIR not set or not accessible!"
+  if [ -z "$GPG_HOMEDIR" ] ; then
+    echo "GPG_HOMEDIR not set!"
     return 1
   fi
   if [ -z "$GPG_AUTHORITY_NAME" ] ; then
@@ -30,8 +30,14 @@ init_keyring() {
   # Make sure homedir is there
   if [ ! -d "$GPG_HOMEDIR" ]; then
     echo "Creating $GPG_HOMEDIR"
-    mkdir -p $GPG_HOMEDIR || return 1
-    chmod 700 $GPG_HOMEDIR || return 1
+    mkdir -p $GPG_HOMEDIR || {
+      echo "Can't create '$GPG_HOMEDIR'!"
+      return 1
+    }
+    chmod 700 $GPG_HOMEDIR || {
+      echo "Can't change mode 700 for '$GPG_HOMEDIR'!"
+      return 1
+    }
   fi
 
   # Check if we have key for $GPG_AUTHORITY_NAME and generate if needed
