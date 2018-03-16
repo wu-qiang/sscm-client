@@ -44,7 +44,6 @@ init_keyring() {
 
   # Check if we have key for $GPG_AUTHORITY_NAME and generate if needed
 
-  $gpg_cmd --list-keys
   if $gpg_cmd --list-keys --with-colons | grep ":${GPG_AUTHORITY_NAME}:" > /dev/null; then
     echo "Key for '$GPG_AUTHORITY_NAME' exists"
   else
@@ -57,6 +56,8 @@ init_keyring() {
       return 1
     fi
   fi
+
+  $gpg_cmd --quiet --list-keys
 
   return 0
 }
