@@ -90,7 +90,7 @@ gpg_sign() {
 }
 
 gpg_verify() {
-  echo "$1" | base64 --decode | $gpg_cmd --verify
+  echo "$1" | base64 --decode | $gpg_cmd --verify 2> /dev/null
   return $?
 }
 
@@ -99,12 +99,12 @@ gpg_getkeyid() {
   if [ $? -ne 0 ] ; then
     return 1
   fi
-  echo "$tmp" | head -1 | sed -e 's;.* ;;'
+  echo "$tmp" | grep "using RSA key" | sed -e 's;.* ;;' -e 's;.*\([^ ]\{8\}\)$;\1;'
   return 0
 }
 
 gpg_getdata() {
-  echo "$1" | base64 --decode | $gpg_cmd --decrypt 2>/dev/null
+  echo "$1" | base64 --decode | $gpg_cmd --decrypt 2> /dev/null
   return $?
 }
 
