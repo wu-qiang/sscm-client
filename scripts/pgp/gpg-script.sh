@@ -79,14 +79,8 @@ gpg_get_authority_key() {
 
 # Sign a string, base64 encode the result and return it
 gpg_sign() {
-  local str="$2"
-  echo "$str" | gpg -q --no-verbose --no-tty --batch --homedir $GPG_HOMEDIR -u $GPG_AUTHORITY_NAME --armor --sign --pinentry-mode loopback --passphrase $GPG_PASSPHRASE 2>/dev/null | base64 -w 0
-  if [ $? -eq 0 ]; then
-    SIGN_RESULT=0
-    # output the signature
-    #echo "BASE64_ENCODED_SIGNATURE:::"`base64 -w 0 $out_file`":::BASE64_ENCODED_SIGNATURE"
-    #rm $out_file
-  fi
+  echo "$2" | $gpg_cmd --batch --no-tty --passphrase $GPG_PASSPHRASE --user "$GPG_AUTHORITY_NAME" --sign --armor | base64 -w 0
+# --pinentry-mode loopback 2>/dev/null | base64 -w 0
 }
 
 gpg_verify() {
