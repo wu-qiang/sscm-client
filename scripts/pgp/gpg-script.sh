@@ -9,7 +9,8 @@
 # GPG_PASSPHRASE
 #
 
-typeset gpg_cmd="gpg --homedir $GPG_HOMEDIR --quiet"
+declare gpg_cmd="gpg --homedir $GPG_HOMEDIR --quiet"
+declare gpg_batch_cmd="$gpg_cmd --batch --no-tty --pinentry-mode loopback"
 
 check_environment() {
   # Check the environment
@@ -51,7 +52,7 @@ init_keyring() {
     echo "Key for '$GPG_AUTHORITY_NAME' exists."
   else
     echo "Generating key for '$GPG_AUTHORITY_NAME', this may take a while ..."
-    echo "RSA" | $gpg_cmd --batch --no-tty --passphrase "$GPG_PASSPHRASE" --quick-gen-key "$GPG_AUTHORITY_NAME"
+    echo "RSA" | $gpg_batch_cmd --passphrase "$GPG_PASSPHRASE" --quick-gen-key "$GPG_AUTHORITY_NAME"
     if [ $? -eq 0 ] ; then
       echo "Key generated."
     else
@@ -77,12 +78,10 @@ gpg_get_authority_key() {
   return $?
 }
 
-# Sign a string, base64 encode the result and return it
+# Sign a string, base64 encode the result, and return it
 gpg_sign() {
-  #local tmp=$(echo "$2" | $gpg_cmd --batch --no-tty --pinentry-mode loopback --passphrase $GPG_PASSPHRASE --user "$GPG_AUTHORITY_NAME" --sign --armor)
-  local tmp=$(echo "$2" | $gpg_cmd --batch --no-tty --pinentry-mode loopback --passphrase wrong --user "$GPG_AUTHORITY_NAME" --sign --armor)
-  local foo=$?
-  echo "FOO is '$foo'"
+  local tmp=$(echo "$2" | $gpg_batch_cmd --passphrase $GPG_PASSPHRASE --user "$GPG_AUTHORITY_NAME" --sign --armor)
+  # gpg doesn't seem to return a non-zero status for many sign errors, but check anyway
   if [ $? -ne 0 ] ; then
     return 1
   fi
@@ -91,36 +90,22 @@ gpg_sign() {
 }
 
 gpg_verify() {
-  local encodedSig="$1"
-  echo "$encodedSig" | base64 --decode | gpg --homedir $GPG_HOMEDIR -u $GPG_AUTHORITY_NAME --verify
-  if [ $? -eq 0 ]; then
-    #if [ "$result" == "$original_text" ]; then
-      #printf "Signature is both valid and matched\n"
-      VERIFY_RESULT=$?
-    #else
-    #  printf "Signature does not match\n"
-    #fi
-  fi
+  echo "$1" | base64 --decode | $gpg_cmd --verify
+  return $?
 }
 
 gpg_getkeyid() {
-  local encodedSig="$1"
-  local key_id=$(echo "$encodedSig" | base64 --decode | gpg --homedir $GPG_HOMEDIR -u $GPG_AUTHORITY_NAME -q --no-tty --decrypt --pinentry-mode loopback --passphrase $GPG_PASSPHRASE 2>&1)
-echo "key id:[$key_id]"
-  # key's short id is the last 8 hex digits of its finger print
+  local tmp=$(echo "$1" | base64 --decode | $gpg_cmd --verify 2>&1)
+  if [ $? -ne 0 ] ; then
+    return 1
+  fi
+  echo "$tmp" | head -1 | sed -e 's;.* ;;'
+  return 0
 }
 
 gpg_getdata() {
-  local encodedSig="$1"
-  echo "$encodedSig" | base64 --decode | gpg --homedir $GPG_HOMEDIR -u $GPG_AUTHORITY_NAME --decrypt --pinentry-mode loopback --passphrase $GPG_PASSPHRASE 2> /dev/null
-  # key's short id is the last 8 hex digits of its finger print
-  #local in_file=$(mktemp)
-  #local out_file=$(mktemp)
-  #echo "temp files: $in_file & $out_file"
-  #echo "$encodedSig" | base64 --decode > $in_file
-  #echo "$encodedSig" | base64 --decode | gpg --homedir $GPG_HOMEDIR -u $GPG_AUTHORITY_NAME --decrypt --pinentry-mode loopback --passphrase $GPG_PASSPHRASE
-  #gpg --homedir $GPG_HOMEDIR -u $GPG_AUTHORITY_NAME --decrypt --batch --output $out_file $in_file
-  #gpg --homedir $GPG_HOMEDIR -u $GPG_AUTHORITY_NAME --decrypt --batch -o $out_file --pinentry-mode loopback --passphrase $GPG_PASSPHRASE
+  echo "$1" | base64 --decode | $gpg_cmd --decrypt 2>/dev/null
+  return $?
 }
 
 print_usage() {
