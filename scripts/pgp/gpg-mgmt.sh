@@ -75,14 +75,18 @@ gpg_get_authority_key() {
 }
 
 print_usage() {
-  echo "USAGE: $0 {init|get_authority_names|get_authority_key <authority>}"
+  echo "USAGE: $0 {--init-keyring|--get-authority-names|--get-authority-keyid <authority>}"
 }
 
 case "$1" in
-init)                   init_keyring || exit 1 ;;
-get_authority_names)    gpg_get_authority_names || exit 1 ;;
-get_authority_key)      gpg_get_authority_key "$1" || exit 1 ;;
-*)                      print_usage ; exit 1 ;;
+--init-keyring)         init_keyring || exit 1
+                        ;;
+--get-authority-names)  gpg_get_authority_names || exit 1
+                        ;;
+--get-authority-keyid)  gpg_get_authority_key "$1" || exit 1
+                        ;;
+*)                      print_usage ; exit 1
+                        ;;
 esac
 
 exit 0
