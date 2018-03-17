@@ -73,7 +73,7 @@ gpg_get_authority_names() {
 gpg_get_authority_key() {
   # key's short id is the last 8 hex digits of its finger print
   # this is a bit fragile, but works for now
-  $gpg_cmd --list-keys --with-colons $1 | grep pub:u:2048:1: | cut -c 22-29
+  $gpg_cmd --list-keys --with-colons "$1" | grep pub:u:2048:1: | cut -c 22-29
   return $?
 }
 
@@ -163,7 +163,7 @@ case "$1" in
                         ;;
 --get-authority-names)  gpg_get_authority_names || exit 1
                         ;;
---get-authority-keyid)  gpg_get_authority_key "$1" || exit 1
+--get-authority-keyid)  gpg_get_authority_key "$2" || exit 1
                         ;;
 --sign)                 gpg_sign "$2" "$3" || exit 1
                         ;;
