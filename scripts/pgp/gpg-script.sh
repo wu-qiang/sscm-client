@@ -79,7 +79,8 @@ gpg_get_authority_key() {
 
 # Sign a string, base64 encode the result and return it
 gpg_sign() {
-  local tmp=$(echo "$2" | $gpg_cmd --batch --no-tty --pinentry-mode loopback --passphrase $GPG_PASSPHRASE --user "$GPG_AUTHORITY_NAME" --sign --armor)
+  #local tmp=$(echo "$2" | $gpg_cmd --batch --no-tty --pinentry-mode loopback --passphrase $GPG_PASSPHRASE --user "$GPG_AUTHORITY_NAME" --sign --armor)
+  local tmp=$(echo "$2" | $gpg_cmd --batch --no-tty --passphrase $GPG_PASSPHRASE --user "$GPG_AUTHORITY_NAME" --sign --armor)
   if [ $? -ne 0 ] ; then
     return 1
   fi
