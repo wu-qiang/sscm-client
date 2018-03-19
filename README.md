@@ -31,3 +31,31 @@ gpg-script.sh --init-keyring
 gpg-script.sh --get-authority-names
 gpg-script.sh --get-authority-keyid <authority-name>
 ```
+
+## SBAS Script Usage
+
+If want to execute "Attestation Authority" check, we must execute the script `authorities-generator.sh` before `sbas-check.sh`.
+
+These 2 scripts depend on below environment variables:
+
+* GRAFEAS_SERVER_ADDRESS: the host of the Grafeas server.
+* GRAFEAS_SERVER_PORT: the port of the Grafeas server.
+* GPG_SCRIPT: the script that execute pgp sign and verify.
+* ATTESTATION_AUTHORITY_FILE: the location to store attestation authority data.
+
+To generate the attestation authority file, run:
+
+```bash
+authorities-generator.sh
+```
+
+This script will call "GPG_SCRIPT" to get attestation name and key id. The result is wrote to the file "ATTESTATION_AUTHORITY_FILE".
+
+To check if a resource can be deployed, run script:
+
+```bash
+sbas-check.sh <project name> <resource url> <cluster name>
+
+sbas-check.sh build https://host/demo/build@sha256:aba48d60ba4410ec921f9d2e8169236c57660d121f9430dc9758d754eec8f887 experimental
+```
+
