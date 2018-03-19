@@ -19,26 +19,6 @@
 # If not set "ATTESTATION_AUTHORITY_FILE", will not check attestation authority.
 declare -A ATTESTATION_AUTHORITY
 
-# Just make the script pass.
-mockVerify() {
-    local cmd="$1" data="$2"
-    case "$cmd" in
-        verify)
-            return 0
-            ;;
-        getkeyid)
-            echo "BF09BC55"
-            return 0
-    esac
-}
-
-# Please replace it with the real verification commands.
-# The command should provide below 3 sub commands:
-# -- verify <base64-signature-blob> returns 0 (true) or 1 (false)
-# -- decrypt <blob> returns 0 or 1 if signature valid, outputs signed data if signature is valid
-# -- getkeyid <blob> returns 0 or 1 if signature valid, outputs signing key id
-VERIFICATION_CMD="${GPG_SCRIPT}"
-
 SPHINX_SERVICE_NAME="grafeas"
 SPHINX_ARS_URL="https://a.authz.fun:6734/bak8dhbp5c8g00dbaup0/authz-check/v1/is-allowed"
 SPHINX_TOKEN_URL="https://a.authz.fun:6735/bak8dhbp5c8g00dbaup0/tenant-mgmt/v1/token"
@@ -101,16 +81,21 @@ loadAuthorities() {
 loadMetadata() {
     echo "Get all occurrences from Grafeas server" >&2
     local occurrencesUrl="${GRAFEAS_ENDPOINT}/v1alpha1/projects/${PROJECT_NAME}/occurrences"
-    local body
+    local body count items
     body=$(curl -s -f "$occurrencesUrl")
     if [ $? != 0 ]; then
         echo "Failed get occurrences from \"$occurrencesUrl\"!" >&2
         return 1
     fi
-    
+    count=$(echo "$body" | jq '.occurrences | length')
+    if [ $count -lt 1 ]; then
+        echo "Not found occurrence for the project \"${PROJECT_NAME}\"!" >&2
+        return 1
+    fi
+
     echo "Filter the occurrences with resourceUrl" >&2
-    local items=$(echo "$body" | jq -c '.occurrences | [ .[] | select(.resourceUrl=="'"${RESOURCE_URL}"'") ]')
-    local count=$(echo "$items" | jq '. | length')
+    items=$(echo "$body" | jq -c '.occurrences | [ .[] | select(.resourceUrl=="'"${RESOURCE_URL}"'") ]')
+    count=$(echo "$items" | jq '. | length')
     if [ $count -lt 1 ]; then
         echo "Not found occurrence for the resourceUrl \"${RESOURCE_URL}\"!" >&2
         return 1
@@ -131,6 +116,7 @@ extractAttestation() {
     local signature=$(echo "$data" | jq -r '.attestationDetails.pgpSignedAttestation.signature | select (.!=null)')
     local keyid=$(echo "$data" | jq -r '.attestationDetails.pgpSignedAttestation.pgpKeyId | select (.!=null)')
 
+    echo "keyid=$keyid"
     # some occurrences may have no signature, it's valid. skip this kind occurrence directly.
     if [ -z "$signature" -a -z "$keyid" ]; then
         return 0
@@ -204,12 +190,12 @@ checkAuthority() {
 checkSignature() {
     local key="$1" signature="$2"
 
-    if ! $VERIFICATION_CMD verify "$signature"; then
+    if ! ${GPG_SCRIPT} --verify "$signature"; then
         echo "Verify signature failed for the key \"$key\"!" >&2
         return 1
     fi
 
-    local signKey=$($VERIFICATION_CMD getkeyid "$signature")
+    local signKey=$(${GPG_SCRIPT} --get-signature-keyid "$signature")
     if [ X"$key" != X"$signKey" ]; then
         echo "The signture declare it's signed by \"$key\", but is \"$signKey\"" >&2
         return 1
@@ -257,11 +243,6 @@ CLUSTER_NAME="$3"
 GRAFEAS_ENDPOINT="http://${GRAFEAS_SERVER_ADDRESS}:{$GRAFEAS_SERVER_PORT}"
 if [ -z "${GRAFEAS_ENDPOINT}" ]; then
     echo "Not get Grafeas endpoint, please check the environment variables \"GRAFEAS_SERVER_ADDRESS\" and \"GRAFEAS_SERVER_PORT\"!"
-    exit 2
-fi
-
-if [ -z "${VERIFICATION_CMD}" ]; then
-    echo "Not get pgp verifyication command, please check the environment variable \"PGP_SCRIPT\"!"
     exit 2
 fi
 
