@@ -150,6 +150,33 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
           if (postGrafeas) {
             log("Creating Notes at: " + urlGrafeasNotes);
             log("Creating Occurrences at: " + urlGrafeasOccurrences);
+
+            //create projects if not already exists
+            String projectUrl = urlGrafeas + GRAFEAS_VERSION + "projects";
+            String projNotesName = GRAFEAS_PROJECTS + "NVD";
+            JSONObject projNotes = new JSONObject();
+            projNotes.put("name", projNotesName);
+            HTTPRequest request = new HTTPRequest(HTTPRequest.Method.POST, new URL(projectUrl));
+            request.setHeader("Content-Type", "application/json");
+            request.setQuery(projNotes.toJSONString());
+            HTTPResponse response = request.send();
+            if (!response.indicatesSuccess())
+              log("Project NVD already exists: " + response.getContent());
+            else
+              log("Created NVD project");
+
+            String projOccurrencesName = GRAFEAS_PROJECTS + projectId;
+            JSONObject projOccurrences = new JSONObject();
+            projOccurrences.put("name", projOccurrencesName);
+            HTTPRequest projRequest = new HTTPRequest(HTTPRequest.Method.POST, new URL(projectUrl));
+            projRequest.setHeader("Content-Type", "application/json");
+            projRequest.setQuery(projOccurrences.toJSONString());
+            HTTPResponse projResponse = projRequest.send();
+            if (!projResponse.indicatesSuccess())
+              log("Project already exists: " + projResponse.getContent());
+            else
+              log("Created project" + projOccurrencesName);
+
             uploadOccurrenceList(listOccurrences, urlGrafeasNotePrefix, urlGrafeasOccurrences);
           }
           else {
