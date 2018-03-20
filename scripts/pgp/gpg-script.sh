@@ -80,8 +80,8 @@ gpg_get_authority_key() {
 
 # Sign a string, base64 encode the result, and return it
 gpg_sign() {
-  local tmp=$(echo "$2" | $gpg_batch_cmd --passphrase $GPG_PASSPHRASE --user "$GPG_AUTHORITY_NAME" --sign --armor)
-  # gpg doesn't seem to return a non-zero status for many sign errors, but check anyway
+  local tmp=
+  tmp=$(echo "$2" | $gpg_batch_cmd --passphrase $GPG_PASSPHRASE --user "$GPG_AUTHORITY_NAME" --sign --armor)
   if [ $? -ne 0 ] ; then
     return 1
   fi
@@ -95,7 +95,8 @@ gpg_verify() {
 }
 
 gpg_getkeyid() {
-  local tmp=$(echo "$1" | base64 --decode | $gpg_cmd --verify 2>&1)
+  local tmp=
+  tmp=$(echo "$1" | base64 --decode | $gpg_cmd --verify 2>&1)
   if [ $? -ne 0 ] ; then
     return 1
   fi
@@ -106,6 +107,65 @@ gpg_getkeyid() {
 gpg_getdata() {
   echo "$1" | base64 --decode | $gpg_cmd --decrypt 2> /dev/null
   return $?
+}
+
+gpg_test() {
+  #
+  # TODO: add test for get_keyid and get_data
+  #
+
+  local status=0
+  local data="test one two three"
+
+  # test that we can sign something using any of the authority keys and it'll verify
+  echo "Test signing/verification for all authority names ..."
+  for i in $(gpg_get_authority_names)
+  do
+    local sig=
+    sig=$(gpg_sign "$i" "$data" || {
+      echo "Test failed: signing failed for authority '$i'"
+    }
+    gpg_verify "$sig" || {
+      echo "Test failed: verification failed for authority '$i'"
+      status=1
+  done
+  if [ "$status" -eq "0" ] ; then
+    echo "Test succeeded: sigining and verification for all authority names"
+  fi
+
+  # test that signing fails if don't have, e.g., valid keyid
+  echo "Test that signing with bad authority name fails ..."
+  if gpg_sign "this/attestation/authority/does/not/exist" "$data" ; then
+    echo "Test failed: sign with bad authority name succeeded"
+    status=1
+  else
+    else "Test succeeded: sign with bad authority name failed"
+  fi
+
+  # test that verification fails for a bad signature
+  local bad_sig="LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tClZlcnNpb246IEdudVBHIHYyCgpvd0VCUFFIQy9wQU5Bd0FJQWF2NVdVUk5DYUpCQWNzTllnQmFzVGxXWm05dlltRnlDb2tCSEFRQUFRZ0FCZ1VDCldyRTVWZ0FLQ1JDcitWbEVUUW1pUVZOSkNBQ0pxVlRLUnNpVjVIeGp3ZVFHdTNqMXN2NXBWOVZrMWdwMXU1clAKaTB2Tk95VGNsZnl5V1FkR2VGZnhtS0dHSjNFQ0UvM0VvNUhyZHJlbXBHU282d05aT251eFdpeWZ3NVorT25ONgp4eWxvUjNDTkY1NG12ZjJRRjRZTG9Sb2FJNFFFdk05bTBFNjVsZ3J2YW1JREt2R0ppTUZvcitGUnJNNHRJYVYrCmI5Q2xNY2NXcGlOQmJjeEhxVkpBWmlRS2pIMVV4cDVsdGZtNUwvcURZbGVQcjVzazBSdG1vcEcrMkNra0x0YkQKNytaQTlTMGNnR1g2cTNGL1VqZW9rZkFKaXBmL1dWdksreWNRR3R6eHc2VlRtbzZGNUJwQzlOdFd5T0dRQkRXdwo1WUhOQytNMktwenNOLzZHZlRkQ2Q4aFhhYUdtbGhJS0tldXZKS0gvNkc3SlNKZEwKPXdtTFkKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQo="
+
+  echo "Test that bad signature (altered armored signature value) fails verification ..."
+  if gpg_verify "$bad_sig" ; then
+    echo "Test failed: bad signature was verified"
+    status=1
+  else
+    echo "Test succeeded: bad signature not verified"
+  fi
+
+  # test that verification fails for a signature we don't have a key for
+  local good_sig_no_key="LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tClZlcnNpb246IEdudVBHIHYyCgpvd0VCUFFIQy9wQU5Bd0FJQWF2NVdVUk5DYUpCQWNzTllnQmFzVGxXWm05dlltRnlDb2tCSEFRQUFRZ0FCZ1VDCldyRTVWZ0FLQ1JDcitWbEVUUW1pUVZOSkNBQ0pxVlRLUnNpVjVIeGp3ZVFHdTNqMXN2NXBWOVZrMWdwMXU1clAKaTB2Tk95VGNsZnl5V1FkR2VGZnhtS0dHSjNFQ0UvM0VvNUhyZHJlbXBHU282d05aT251eFdpeWZ3NVorT25ONgpBTE5qWTRDTkY1NG12ZjJRRjRZTG9Sb2FJNFFFdk05bTBFNjVsZ3J2YW1JREt2R0ppTUZvcitGUnJNNHRJYVYrCmI5Q2xNY2NXcGlOQmJjeEhxVkpBWmlRS2pIMVV4cDVsdGZtNUwvcURZbGVQcjVzazBSdG1vcEcrMkNra0x0YkQKNytaQTlTMGNnR1g2cTNGL1VqZW9rZkFKaXBmL1dWdksreWNRR3R6eHc2VlRtbzZGNUJwQzlOdFd5T0dRQkRXdwo1WUhOQytNMktwenNOLzZHZlRkQ2Q4aFhhYUdtbGhJS0tldXZKS0gvNkc3SlNKZEwKPXdtTFkKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQo="
+
+  echo "Test that good signature fails verification if public key not available ..."
+  if gpg_verify "$good_sig_no_key" ; then
+    echo "Test failed: signature was verified without public key"
+    status=1
+  else
+    echo "Test succeeded: signature not verified without public key"
+  fi
+
+  # return the accrued status
+  return $status
 }
 
 print_usage() {
@@ -158,6 +218,8 @@ case "$1" in
 --get-signature-keyid)  gpg_getkeyid "$2" || exit 1
                         ;;
 --get-signature-data)   gpg_getdata "$2" || exit 1
+                        ;;
+--test)                 gpg_test || exit 1
                         ;;
 *)                      print_usage ; exit 1
                         ;;
