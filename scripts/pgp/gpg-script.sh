@@ -122,7 +122,7 @@ gpg_test() {
   for i in $(gpg_get_authority_names)
   do
     local sig=
-    sig=$(gpg_sign "$i" "$data" || {
+    sig=$(gpg_sign "$i" "$data") || {
       echo "Test failed: signing failed for authority '$i'"
     }
     gpg_verify "$sig" || {
