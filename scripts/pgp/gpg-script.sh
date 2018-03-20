@@ -131,7 +131,7 @@ gpg_test() {
     }
   done
   if [ "$status" -eq "0" ] ; then
-    echo "Test succeeded: sigining and verification for all authority names"
+    echo "Test succeeded: signing and verification for all authority names"
   fi
 
 #
