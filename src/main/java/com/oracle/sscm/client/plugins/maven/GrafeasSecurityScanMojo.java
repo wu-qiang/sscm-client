@@ -42,6 +42,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
     public static final String GRAFEAS_NOTEID_QUERY_PARAM = "noteId";
     public static final String GRAFEAS_NOTE_NAME = GRAFEAS_PROJECTS + "%s/notes/%s";
     public static final String GRAFEAS_NOTE_NAME_PREFIX = GRAFEAS_VERSION;
+    public static final String GRAFEAS_NOTES_PROJECTID = "build-infrastructure";
     public static final String GRAFEAS_PROJECTS_PREFIX = GRAFEAS_VERSION + GRAFEAS_PROJECTS;
     public static final String GRAFEAS_NOTES = GRAFEAS_PROJECTS_PREFIX + "{projectsId}/notes";
     public static final String GRAFEAS_OCCURRENCES = "%s" + GRAFEAS_PROJECTS_PREFIX + "%s/occurrences";
@@ -153,7 +154,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
             //create projects if not already exists
             String projectUrl = urlGrafeas + GRAFEAS_VERSION + "projects";
-            String projNotesName = GRAFEAS_PROJECTS + "NVD";
+            String projNotesName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID;
             JSONObject projNotes = new JSONObject();
             projNotes.put("name", projNotesName);
             HTTPRequest request = new HTTPRequest(HTTPRequest.Method.POST, new URL(projectUrl));
@@ -161,9 +162,9 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
             request.setQuery(projNotes.toJSONString());
             HTTPResponse response = request.send();
             if (!response.indicatesSuccess())
-              log("Project NVD already exists: " + response.getContent());
+              log("Project already exists: " + response.getContent());
             else
-              log("Created NVD project");
+              log("Created project for notes " + GRAFEAS_NOTES_PROJECTID);
 
             String projOccurrencesName = GRAFEAS_PROJECTS + projectId;
             JSONObject projOccurrences = new JSONObject();
@@ -414,6 +415,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       String severity = ((String) vulnerability.get("severity")).toUpperCase();
       String source = (String) vulnerability.get("source");
       String noteName = String.format(GRAFEAS_NOTE_NAME, source, CVE);
+      noteName = noteName.replace("NVD", GRAFEAS_NOTES_PROJECTID);
 
       // Build the package issue which is actually an array...
       if (packageIssue != null) {
@@ -537,9 +539,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         request.setQuery(note.toJSONString());
         HTTPResponse response = request.send();
         if (!response.indicatesSuccess())
-          //Temporary work around for grafeas server running on local host, no NVD project
           throw new IOException("Failed to create Note: " + response.getContent());
-          // log(String.format("Failed to create Note: '%s'", response.getContent()));
       }
     }
 
