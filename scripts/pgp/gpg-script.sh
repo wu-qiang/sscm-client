@@ -81,7 +81,7 @@ gpg_get_authority_key() {
 # Sign a string, base64 encode the result, and return it
 gpg_sign() {
   local tmp=
-  tmp=$(echo "$2" | $gpg_batch_cmd --passphrase $GPG_PASSPHRASE --user "$GPG_AUTHORITY_NAME" --sign --armor)
+  tmp=$(echo "$2" | $gpg_batch_cmd --passphrase $GPG_PASSPHRASE --user "$1" --sign --armor)
   if [ $? -ne 0 ] ; then
     return 1
   fi
@@ -134,18 +134,15 @@ gpg_test() {
     echo "Test succeeded: signing and verification for all authority names"
   fi
 
-#
-# This test fails now because the authority param is ignored
-#
-#  # test that signing fails if don't have, e.g., valid keyid
-#  echo "Test that signing with bad authority name fails ..."
-#  sig=$(gpg_sign "this/attestation/authority/does/not/exist" "$data")
-#  if [ $? -eq 0 ]; then
-#    echo "Test failed: sign with bad authority name succeeded"
-#    status=1
-#  else
-#    echo "Test succeeded: sign with bad authority name failed"
-#  fi
+  # test that signing fails if don't have, e.g., valid keyid
+  echo "Test that signing with bad authority name fails ..."
+  sig=$(gpg_sign "this/attestation/authority/does/not/exist" "$data")
+  if [ $? -eq 0 ]; then
+    echo "Test failed: sign with bad authority name succeeded"
+    status=1
+  else
+    echo "Test succeeded: sign with bad authority name failed"
+  fi
 
   # test that verification fails for a bad signature
   local bad_sig="LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tClZlcnNpb246IEdudVBHIHYyCgpvd0VCUFFIQy9wQU5Bd0FJQWF2NVdVUk5DYUpCQWNzTllnQmFzVGxXWm05dlltRnlDb2tCSEFRQUFRZ0FCZ1VDCldyRTVWZ0FLQ1JDcitWbEVUUW1pUVZOSkNBQ0pxVlRLUnNpVjVIeGp3ZVFHdTNqMXN2NXBWOVZrMWdwMXU1clAKaTB2Tk95VGNsZnl5V1FkR2VGZnhtS0dHSjNFQ0UvM0VvNUhyZHJlbXBHU282d05aT251eFdpeWZ3NVorT25ONgp4eWxvUjNDTkY1NG12ZjJRRjRZTG9Sb2FJNFFFdk05bTBFNjVsZ3J2YW1JREt2R0ppTUZvcitGUnJNNHRJYVYrCmI5Q2xNY2NXcGlOQmJjeEhxVkpBWmlRS2pIMVV4cDVsdGZtNUwvcURZbGVQcjVzazBSdG1vcEcrMkNra0x0YkQKNytaQTlTMGNnR1g2cTNGL1VqZW9rZkFKaXBmL1dWdksreWNRR3R6eHc2VlRtbzZGNUJwQzlOdFd5T0dRQkRXdwo1WUhOQytNMktwenNOLzZHZlRkQ2Q4aFhhYUdtbGhJS0tldXZKS0gvNkc3SlNKZEwKPXdtTFkKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQo="
