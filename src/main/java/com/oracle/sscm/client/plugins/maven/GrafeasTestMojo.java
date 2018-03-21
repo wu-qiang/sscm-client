@@ -45,7 +45,7 @@ public class GrafeasTestMojo extends AbstractMojo {
     public static final String GRAFEAS_NOTEID_QUERY_PARAM = "noteId";
     public static final String GRAFEAS_NOTE_NAME_PREFIX = GRAFEAS_VERSION;
     public static final String GRAFEAS_PROJECTS_PREFIX = GRAFEAS_VERSION + GRAFEAS_PROJECTS;
-    public static final String GRAFEAS_NOTE_NAME = GRAFEAS_PROJECTS + "%s/notes/qa";
+    public static final String GRAFEAS_NOTE_NAME = GRAFEAS_PROJECTS + "build-infrastructure/notes/qa";
     public static final String GRAFEAS_NOTES = GRAFEAS_PROJECTS_PREFIX + "%s/notes";
     public static final String GRAFEAS_OCCURRENCES = GRAFEAS_PROJECTS_PREFIX + "%s/occurrences";
 
@@ -66,7 +66,8 @@ public class GrafeasTestMojo extends AbstractMojo {
         if (!grafeasUrl.endsWith(URL_SLASH)) grafeasUrl += URL_SLASH;
       }
 
-      noteName = String.format(GRAFEAS_NOTE_NAME, projectId);
+      //noteName = String.format(GRAFEAS_NOTE_NAME, projectId);
+      noteName = GRAFEAS_NOTE_NAME;
       grafeasOccurrence = String.format(GRAFEAS_OCCURRENCES, projectId);
 
       try {
@@ -111,7 +112,8 @@ public class GrafeasTestMojo extends AbstractMojo {
       occurrence.put("attestation", attestation);
       occurrence.put("noteName", noteName);
       occurrence.put("resourceUrl", resourceUrl);
-      occurrence.put("name", "projects/" + projectId + "/occurrences/QATested");
+      String occurrenceName = "QATested" + System.currentTimeMillis();
+      occurrence.put("name", "projects/" + projectId + "/occurrences/" + occurrenceName);
       System.out.println("occurrence = " + occurrence);
       return occurrence;
   }
