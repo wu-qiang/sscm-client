@@ -11,35 +11,61 @@ import java.io.InputStream;
  */
 public class GPGScriptWrapper {
   private String script;
-  private final String SIGN = "sign";
-  private final String VERIFY = "verify";
-  private final String GET_KEY_ID = "getkeyid";
-  private final String GET_DATA = "getdata";
+  private String gpgAuthorityName;
+
+  private static final String SIGN = "--sign";
+  private static final String VERIFY = "--verify";
+  private static final String GET_KEY_ID = "--get-signature-keyid";
+  private static final String GET_DATA = "--get-signature-data";
+  private static final String INIT_KEYRING = "--init-keyring";
+
+  private static final String GPG_SCRIPT_ENV_VAR = "GPG_SCRIPT";
+  private static final String GPG_AUTHORITY_NAME_ENV_VAR = "GPG_AUTHORITY_NAME";
 
   /**
-   * Use the GPG_SCRIPT environment variable defined in the Wercker pipeline
+   * Use the GPG_SCRIPT, GPG_AUTHORITY_NAME environment variables defined in the Wercker pipeline
    */
   public GPGScriptWrapper() {
-    script = System.getenv("GPG_SCRIPT");
+    script = System.getenv(GPG_SCRIPT_ENV_VAR);
+    gpgAuthorityName = System.getenv(GPG_AUTHORITY_NAME_ENV_VAR);
+    initKeyRing();
   }
 
   /**
    *
    * @param script full path of the GPG script.  Should be under GPG_SCRIPT Wercker env variable
+   * @param gpgAuthorityName full name of an attestation authority
    */
-  public GPGScriptWrapper(String script) {
+  public GPGScriptWrapper(String script, String gpgAuthorityName) {
     this.script = script;
+    this.gpgAuthorityName = gpgAuthorityName;
+    initKeyRing();
   }
 
 
   /**
    *
-   * @param keyUID key uid, e.g. image.signer@oracle.com
+   * @return true if the key ring is initialized successfully, false otherwise.
+   */
+  public boolean initKeyRing() {
+    boolean initialized = false;
+    int exitCode = 1;
+    try {
+      exitCode = getExitCodeOfExecScript(new String[]{script, INIT_KEYRING});
+    } catch(IOException ioe) {
+
+    }
+
+    return exitCode == 0;
+  }
+
+  /**
+   *
    * @param data data to be signed
    * @return  Base64 encoding of the signature
    */
-  public String sign(String keyUID, String data) throws IOException {
-    return execScript(new String[] {script, SIGN, keyUID, data});
+  public String sign(String data) throws IOException {
+    return execScript(new String[] {script, SIGN, gpgAuthorityName, data});
   }
 
 
@@ -72,32 +98,35 @@ public class GPGScriptWrapper {
     return execScript(new String[] {script, GET_DATA, encodedSignature});
   }
 
-   private String execScript(String[] scriptAndArguments) throws IOException {
-     final File tmp = File.createTempFile("out", null);
-     final StringBuilder out = new StringBuilder();
-     int exitCode = 1;
-     try {
-       tmp.deleteOnExit();
-       ProcessBuilder processBuilder = new ProcessBuilder();
-       processBuilder.command(scriptAndArguments).redirectErrorStream(true).redirectOutput(tmp);
-       Process process = processBuilder.start();
+  private String execScript(String[] scriptAndArguments) throws IOException {
+    final File tmp = File.createTempFile("out", null);
+    final StringBuilder out = new StringBuilder();
+    int exitCode = 1;
+    InputStream is = null;
+    try {
+      tmp.deleteOnExit();
+      ProcessBuilder processBuilder = new ProcessBuilder();
+      processBuilder.command(scriptAndArguments).redirectErrorStream(true).redirectOutput(tmp);
+      Process process = processBuilder.start();
 
-       try {
-         exitCode = process.waitFor();
-       } catch (InterruptedException ie) {
-         throw new IOException("Process did not finish gracefully.", ie);
-       }
+      try {
+        exitCode = process.waitFor();
+      } catch (InterruptedException ie) {
+        throw new IOException("Process did not finish gracefully.", ie);
+      }
 
-       try (InputStream is = new FileInputStream(tmp)) {
-         int c;
-         while ((c = is.read()) != -1) {
-           out.append((char) c);
-         }
-       }
+      is = new FileInputStream(tmp);
+      int c;
+      while ((c = is.read()) != -1) {
+        out.append((char) c);
+      }
 
-     } finally {
-       tmp.delete();
-     }
+    } finally {
+      tmp.delete();
+      if (is != null) {
+        is.close();
+      }
+    }
 
     return out.toString();
   }
@@ -127,8 +156,8 @@ public class GPGScriptWrapper {
 
   public static void main(String[] args) throws IOException {
     GPGScriptWrapper scriptWrapper = new GPGScriptWrapper();
-    String data = "one";
-    String base64EncodedSignature = scriptWrapper.sign("abc@def.com", data);
+    String data = "Grafeas meta data";
+    String base64EncodedSignature = scriptWrapper.sign(data);
 
     boolean validSig = scriptWrapper.verify(base64EncodedSignature);
 
