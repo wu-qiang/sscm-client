@@ -80,8 +80,14 @@ gpg_get_authority_key() {
 
 # Sign a string, base64 encode the result, and return it
 gpg_sign() {
+  local authority="$1"
+  local data="$2"
   local tmp=
-  tmp=$(echo "$2" | $gpg_batch_cmd --passphrase $GPG_PASSPHRASE --user "$1" --sign --armor)
+  tmp=$(gpg_get_authority_key "$authority")
+  if [[ $? -ne 0 || -z "$tmp" || "$tmp" = "" ]] ; then
+    return 1
+  fi
+  tmp=$(echo "$data" | $gpg_batch_cmd --passphrase $GPG_PASSPHRASE --user "$authority" --sign --armor)
   if [ $? -ne 0 ] ; then
     return 1
   fi
