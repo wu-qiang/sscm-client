@@ -159,19 +159,16 @@ gpg_test() {
     }
     gpg_verify "$sig" || {
       echo "Test failed: verification failed for authority '$i'"
-      status=1
+      ((status++))
     }
   done
-  if [ "$status" -eq "0" ] ; then
-    echo "Test succeeded: signing and verification for all authority names"
-  fi
 
   # test that signing fails if don't have, e.g., valid keyid
   echo "Test that signing with bad authority name fails ..."
   sig=$(gpg_sign "this/attestation/authority/does/not/exist" "$data")
   if [ $? -eq 0 ]; then
     echo "Test failed: sign with bad authority name succeeded"
-    status=1
+    ((status++))
   else
     echo "Test succeeded: sign with bad authority name failed"
   fi
@@ -182,7 +179,7 @@ gpg_test() {
   echo "Test that bad signature (altered armored signature value) fails verification ..."
   if gpg_verify "$bad_sig" ; then
     echo "Test failed: bad signature was verified"
-    status=1
+    ((status++))
   else
     echo "Test succeeded: bad signature not verified"
   fi
@@ -193,7 +190,7 @@ gpg_test() {
   echo "Test that good signature fails verification if public key not available ..."
   if gpg_verify "$good_sig_no_key" ; then
     echo "Test failed: signature was verified without public key"
-    status=1
+    ((status++))
   else
     echo "Test succeeded: signature not verified without public key"
   fi
@@ -202,7 +199,7 @@ gpg_test() {
   if [ "$status" -eq "0" ] ; then
     echo "GPG TESTS SUCCEEDED"
   else
-    echo "GPG TESTS FAILED"
+    echo "GPG TESTS FAILED ($status failure(s))"
   fi
   return $status
 }
