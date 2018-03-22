@@ -1,37 +1,54 @@
 #!/bin/bash
 
 #
-# These environment variables come from Wercker environment.
-# Must be set before running script.
+# Configure HOMEDIR
 #
-# GPG_HOMEDIR
-# GPG_AUTHORITY_NAME
-# GPG_PASSPHRASE
+
+declare GPG_HOMEDIR=
+
+if [[ -n "$WERCKER_CACHE_DIR" && -d "$WERCKER_CACHE_DIR" ]] ; then
+    GPG_HOMEDIR="$WERCKER_CACHE_DIR/gnupg"
+else
+    GPG_HOMEDIR="/tmp/gnupg"
+fi
+
+#
+# Set up authority names
+#
+
+declare -a AUTHORITY_NAMES
+declare -A AUTHORITY_PASSPHRASES
+
+AUTHORITY_NAMES[0]="/projects/build-infrastructure/attestationAuthorities/Build"
+AUTHORITY_PASSPHRASES[$AUTHORITY_NAMES[0]]="super-secret-0"
+
+AUTHORITY_NAMES[1]="/projects/build-infrastructure/attestationAuthorities/Test"
+AUTHORITY_PASSPHRASES[$AUTHORITY_NAMES[1]]="super-secret-1"
+
+AUTHORITY_NAMES[2]="/projects/build-infrastructure/attestationAuthorities/SecurityScan"
+AUTHORITY_PASSPHRASES[$AUTHORITY_NAMES[2]]="super-secret-2"
+
+#
+# GPG command and args we want to use
 #
 
 declare gpg_cmd="gpg --homedir $GPG_HOMEDIR --quiet"
 declare gpg_batch_cmd="$gpg_cmd --batch --no-tty --pinentry-mode loopback"
 
-check_environment() {
-  # Check the environment
-  if [ -z "$GPG_HOMEDIR" ] ; then
-    echo "GPG_HOMEDIR not set!"
-    return 1
-  fi
-  if [ -z "$GPG_AUTHORITY_NAME" ] ; then
-    echo "GPG_AUTHORITY_NAME not set!"
-    return 1
-  fi
-  if [ -z "$GPG_PASSPHRASE" ] ; then
-    echo "GPG_PASSPHRASE not set!"
-    return 1
-  fi
-  return 0
-}
+#
+# Functions
+#
 
-check_homedir() {
-  # Make sure homedir is there
+create_homedir() {
+  local check_only=false
+  [[ "$1" == "--check-only" ]] && check_only=true
+
+  # Make sure homedir is there, creating it if necessary
+  # If the --check option is used, then just check whether
+  # it exists. Always check/fix the directory permissions.
+
   if [ ! -d "$GPG_HOMEDIR" ]; then
+    [[ "$check_only" == "true" ]] && return 1
     echo "Creating $GPG_HOMEDIR"
     mkdir -p $GPG_HOMEDIR || {
       echo "Can't create '$GPG_HOMEDIR'!"
@@ -47,19 +64,24 @@ check_homedir() {
 }
 
 init_keyring() {
-  # Check whether we have a key for $GPG_AUTHORITY_NAME, and generate if needed
-  if $gpg_cmd --list-keys --with-colons | grep ":${GPG_AUTHORITY_NAME}:" > /dev/null; then
-    echo "Key for '$GPG_AUTHORITY_NAME' exists."
-  else
-    echo "Generating key for '$GPG_AUTHORITY_NAME', this may take a while ..."
-    echo "RSA" | $gpg_batch_cmd --passphrase "$GPG_PASSPHRASE" --quick-gen-key "$GPG_AUTHORITY_NAME"
-    if [ $? -eq 0 ] ; then
-      echo "Key generated."
+  create_homedir || return 1
+  # For each authority, check whether we have a key, generate one if needed
+  local authority=
+  for authority in $(gpg_get_authority_names)
+  do
+    if $gpg_cmd --list-keys --with-colons | grep ":${authority}:" > /dev/null; then
+      echo "Key for '$authority' already exists."
     else
-      echo "Key generation failed!"
-      return 1
+      echo "Generating key for '$authority', this may take a while ..."
+      echo "RSA" | $gpg_batch_cmd --passphrase "${AUTHORITY_PASSPHRASES[$authority]}" --quick-gen-key "$authority"
+      if [ $? -eq 0 ] ; then
+        echo "Key generated."
+      else
+        echo "Key generation failed!"
+        return 1
+      fi
     fi
-  fi
+  done
 
   $gpg_cmd --list-keys
 
@@ -67,7 +89,11 @@ init_keyring() {
 }
 
 gpg_get_authority_names() {
-  echo "$GPG_AUTHORITY_NAME"
+  local index=
+  for index in ${!AUTHORITY_NAMES[@]}
+  do
+    echo "${AUTHORITY_NAMES[$index]}"
+  done
   return 0
 }
 
@@ -87,7 +113,7 @@ gpg_sign() {
   if [[ $? -ne 0 || -z "$tmp" || "$tmp" = "" ]] ; then
     return 1
   fi
-  tmp=$(echo "$data" | $gpg_batch_cmd --passphrase $GPG_PASSPHRASE --user "$authority" --sign --armor)
+  tmp=$(echo "$data" | $gpg_batch_cmd --passphrase "${AUTHORITY_PASSPHRASES[$authority]}" --user "$authority" --sign --armor)
   if [ $? -ne 0 ] ; then
     return 1
   fi
@@ -133,19 +159,16 @@ gpg_test() {
     }
     gpg_verify "$sig" || {
       echo "Test failed: verification failed for authority '$i'"
-      status=1
+      ((status++))
     }
   done
-  if [ "$status" -eq "0" ] ; then
-    echo "Test succeeded: signing and verification for all authority names"
-  fi
 
   # test that signing fails if don't have, e.g., valid keyid
   echo "Test that signing with bad authority name fails ..."
   sig=$(gpg_sign "this/attestation/authority/does/not/exist" "$data")
   if [ $? -eq 0 ]; then
     echo "Test failed: sign with bad authority name succeeded"
-    status=1
+    ((status++))
   else
     echo "Test succeeded: sign with bad authority name failed"
   fi
@@ -156,7 +179,7 @@ gpg_test() {
   echo "Test that bad signature (altered armored signature value) fails verification ..."
   if gpg_verify "$bad_sig" ; then
     echo "Test failed: bad signature was verified"
-    status=1
+    ((status++))
   else
     echo "Test succeeded: bad signature not verified"
   fi
@@ -167,7 +190,7 @@ gpg_test() {
   echo "Test that good signature fails verification if public key not available ..."
   if gpg_verify "$good_sig_no_key" ; then
     echo "Test failed: signature was verified without public key"
-    status=1
+    ((status++))
   else
     echo "Test succeeded: signature not verified without public key"
   fi
@@ -176,22 +199,26 @@ gpg_test() {
   if [ "$status" -eq "0" ] ; then
     echo "GPG TESTS SUCCEEDED"
   else
-    echo "GPG TESTS FAILED"
+    echo "GPG TESTS FAILED ($status failure(s))"
   fi
   return $status
 }
+
+#
+# Usage
+#
 
 print_usage() {
   printf "Command usage for $0:\n"
   printf "==================================\n"
   printf "$0 --init-keyring\n"
-  printf "Initialize the keyring with authority keys.\n\n"
+  printf "Explicitly initialize the keyring.\n\n"
 
   printf "$0 --get-authority-names\n"
-  printf "Get the names of the configured attestation authorities.\n\n"
+  printf "Get the names of the known attestation authorities.\n\n"
 
   printf "$0 --get-authority-keyid <authority_name>\n"
-  printf "Get the keyid for the specified authority name.\n\n"
+  printf "Get the public key id for the specified authority.\n\n"
 
   printf "$0 --sign <authority_name> \"<string_to_be_signed>\"\n"
   printf "Sign a string using the key of the named authority.\n\n"
@@ -200,22 +227,21 @@ print_usage() {
   printf "Verify a signature. Returns 0 or 1 to indicate signature validity.\n\n"
 
   printf "$0 --get-signature-keyid \"<base64_encoded_signature>\"\n"
-  printf "Get the short ID(last 8 Hex digits of the key's finger print) of the key that was used to sign the provided signature. Returns 0 or 1 to indicate signature validity.\n\n"
+  printf "Get the short ID(last 8 Hex digits of the key's finger print) of the key that was used\n"
+  printf "to sign the provided signature. Returns 0 or 1 to indicate signature validity.\n\n"
 
   printf "$0 --get-signature-data \"<base64_encoded_signature>\"\n"
   printf "Get the signed data from the encoded signature. Returns 0 or 1 to indicate signature validity.\n\n"
 }
 
 #
-# Make sure the environment looks right and the homedir exists before
-# attempting to do anything. If homedir is there, keys should be, too.
-#
-# TODO: refactor so we can check for the existence of keys without
-# producing a lot of spurious output about the existence of keys.
+# Main script
 #
 
-check_environment || exit 1
-check_homedir || exit 1
+# Check that the homedir is there. If it is, assume the keyring 
+# has been initialized.
+
+create_homedir --check-only || exit 1
 
 case "$1" in
 --init-keyring)         init_keyring || exit 1
