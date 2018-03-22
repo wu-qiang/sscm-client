@@ -17,16 +17,24 @@
 # The content is defined in a separate JSON file.
 # The file name is specified by environment variable "ATTESTATION_AUTHORITY_FILE".
 # If not set "ATTESTATION_AUTHORITY_FILE", will not check attestation authority.
-declare -A ATTESTATION_AUTHORITY
 
-SPHINX_SERVICE_NAME="grafeas"
-SPHINX_ARS_URL="https://a.authz.fun:6734/bak8dhbp5c8g00dbaup0/authz-check/v1/is-allowed"
-SPHINX_TOKEN_URL="https://a.authz.fun:6735/bak8dhbp5c8g00dbaup0/tenant-mgmt/v1/token"
-SPHINX_SECRET="client-BDIuVS:eYHNuaFZBH"
+# The environment variables come from Wercker environment. Should be set before
+# running script.
+#
+# GRAFEAS_SERVER_ADDRESS
+# GRAFEAS_SERVER_PORT
+# GPG_SCRIPT
+# ATTESTATION_AUTHORITY_FILE
+# SPHINX_ARS_ENDPOINT
+# SPHINX_TMS_ENDPOINT
+# SPHINX_CLIENT_ID
+# SPHINX_CLIENT_SECRET
+# SPHINX_SERVICE_NAME
+#
 
 SPHINX_REQUEST_TEMPLATE=$(cat <<EOF
 {
-    "serviceName": "${SPHINX_SERVICE_NAME}",
+    "serviceName": "${SPHINX_SERVICE_NAME:-grafeas}",
     "resource": "@CLUSTER_NAME@",
     "action": "deploy",
     "attributes": [
@@ -42,6 +50,8 @@ EOF
 ATTESTATIONS=()
 SIGNATURES=()
 PGP_KEYIDS=()
+
+declare -A ATTESTATION_AUTHORITY
 
 # Load attestation authorities definition from JSON file.
 # If not want to check attestation authority, please NOT set the enviroment 
@@ -116,7 +126,6 @@ extractAttestation() {
     local signature=$(echo "$data" | jq -r '.attestationDetails.pgpSignedAttestation.signature | select (.!=null)')
     local keyid=$(echo "$data" | jq -r '.attestationDetails.pgpSignedAttestation.pgpKeyId | select (.!=null)')
 
-    echo "keyid=$keyid"
     # some occurrences may have no signature, it's valid. skip this kind occurrence directly.
     if [ -z "$signature" -a -z "$keyid" ]; then
         return 0
@@ -205,8 +214,10 @@ checkSignature() {
 # Provide request attributes get policy decison from Sphinx.
 evaluatePolicy() {
     echo "Apply access token from Sphinx server" >&2
+    local tmsurl="${SPHINX_TMS_ENDPOINT:-https://a.authz.fun:6735/bak8dhbp5c8g00dbaup0/tenant-mgmt/v1/token}"
+    local secret="${SPHINX_CLIENT_ID:-client-BDIuVS}:${SPHINX_CLIENT_SECRET:-eYHNuaFZBH}"
     local body
-    body=$(curl -s -f -X POST -d "grant_type=client_credentials" -u "${SPHINX_SECRET}" "${SPHINX_TOKEN_URL}")
+    body=$(curl -s -f -X POST -d "grant_type=client_credentials" -u "$secret" "$tmsurl")
     if [ $? -ne 0 ]; then
         echo "Failed to apply the Sphinx access token!" >&2
         return 1
@@ -214,9 +225,10 @@ evaluatePolicy() {
     local token=$(echo "$body" | jq -r '.access_token')
 
     echo "Get deploy decision from Sphinx server" >&2
-    attestations=$(printf ',"%s"' ${ATTESTATIONS[@]})
-    request=$(echo "$SPHINX_REQUEST_TEMPLATE" | sed -e 's!@CLUSTER_NAME@!'"$CLUSTER_NAME"'!' -e 's!@ATTESTATIONS@!'"${attestations:1}"'!')
-    body=$(curl -s -f -X POST -H "Authorization: Bearer $token" -d "$request" "${SPHINX_ARS_URL}")
+    local attestations=$(printf ',"%s"' ${ATTESTATIONS[@]})
+    local request=$(echo "$SPHINX_REQUEST_TEMPLATE" | sed -e 's!@CLUSTER_NAME@!'"$CLUSTER_NAME"'!' -e 's!@ATTESTATIONS@!'"${attestations:1}"'!')
+    local arsurl="${SPHINX_ARS_ENDPOINT:-https://a.authz.fun:6734/bak8dhbp5c8g00dbaup0/authz-check/v1/is-allowed}"
+    body=$(curl -s -f -X POST -H "Authorization: Bearer $token" -d "$request" "$arsurl")
     if [ $? -ne 0 ]; then
         echo "Failed to execute Sphinx policy check!" >&2
         return 1
