@@ -22,6 +22,10 @@ import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
 
+import io.grafeas.v1alpha1.model.Attestation;
+import io.grafeas.v1alpha1.model.PgpSignedAttestation;
+import com.oracle.sscm.client.script.GPGScriptWrapper;
+
 @Mojo(name = "generateOccurrences")
 public class GrafeasSecurityScanMojo extends AbstractMojo {
 
@@ -30,6 +34,15 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
     @Parameter(property = "generateOccurrences.urlGrafeas", defaultValue = "UNKNOWN")
     private String urlGrafeas;
+
+    @Parameter(property = "authorityName", defaultValue = "SecurityScan")
+    private String authorityName;
+
+    /* @Parameter(property = "securityScanPublicKey")
+    private String securityScanPublicKey;
+
+    @Parameter(property = "securityScanKeyId")
+    private String securityScanKeyId; */
     //
     // Default values for Grafeas Notes and Occurrences:
     //  - <URL>/v1alpha1/projects/{projectInfo.name}/occurrences
@@ -211,6 +224,30 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         this.urlGrafeas = urlGrafeas;
     }
 
+    public String getAuthorityName() {
+        return authorityName;
+    }
+
+    public void setAuthorityName(String authorityName) {
+        this.authorityName = authorityName;
+    }
+
+    /* public String getSecurityScanPublicKey() {
+        return securityScanPublicKey;
+    }
+
+    public void setSecurityScanPublicKey(String keyName) {
+        this.securityScanPublicKey = keyName;
+    }
+
+    public String getSecurityScanKeyId() {
+        return securityScanKeyId;
+    }
+
+    public void setSecurityScanKeyId(String keyId) {
+        this.securityScanKeyId = keyId;
+    }*/
+
     JSONObject parseDependencyCheckReport(String reportFileName) throws Exception {
       File reportJSON = new File(reportFileName);
       if (!reportJSON.canRead()) {
@@ -274,9 +311,10 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
             JSONObject issue = (packageIssue != null) ? new JSONObject(packageIssue) : null;
             occurrence = createOccurrenceForVulnerability(vulnerability, issue);
             if (occurrence != null) {
-              String randomId = generateRandomChars(RANDOMID_CANDIDATE_CHARS,20);
+              String randomId = authorityName + "-" + generateRandomChars(RANDOMID_CANDIDATE_CHARS,20);
               occurrence.put("name", GRAFEAS_PROJECTS + projectId + URL_SLASH + GRAFEAS_OCCURRENCES_KEY + randomId);
               occurrence.put("resourceUrl", resourceUrl);
+              occurrence.put("attestation", createAttestation(resourceUrl).toString());
               occurrence.put("createTime", projectReportDate);
               listOccurrences.add(occurrence);
             }
@@ -475,6 +513,29 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         checkNoteForOccurrence(noteUrl, occurrence);
         createOccurrence(occurrencesUrl, occurrence);
       }
+    }
+
+    private Attestation createAttestation(String data) throws IOException {
+        PgpSignedAttestation signedAttest = new PgpSignedAttestation();
+
+        GPGScriptWrapper gpg = new GPGScriptWrapper();
+
+        String signedData = gpg.sign(data);
+        String key = gpg.getKeyID(signedData);
+
+        if (signedData != null && key != null) {
+
+            // Create signature with key id
+            signedAttest.setSignature(signedData);
+            signedAttest.setContentType(PgpSignedAttestation.ContentTypeEnum.SIMPLE_SIGNING_JSON);
+
+            signedAttest.setPgpKeyId(key);
+        }
+
+        Attestation attest = new Attestation();
+        attest.setPgpSignedAttestation(signedAttest);
+
+        return attest;
     }
 
     String convertDateFormat(String origDateString, SimpleDateFormat origDateFormat, SimpleDateFormat targetDateFormat) {
