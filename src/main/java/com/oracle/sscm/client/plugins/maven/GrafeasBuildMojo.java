@@ -20,21 +20,22 @@ public class GrafeasBuildMojo extends AbstractMojo {
 
     private static final String URL_SLASH = "/";
 
-    private boolean debug = true;
-
     @Parameter(property = "buildDetails.grafeasUrl", defaultValue = "UNKNOWN")
     private String grafeasUrl;
 
     @Parameter(property = "buildDetails.projectName")
     private String projectName;
 
-    @Parameter(property = "buildDetails.authorityName")
+    @Parameter(property = "buildDetails.infraName", defaultValue = "build-infrastructure")
+    private String infraName;
+
+    @Parameter(property = "buildDetails.authorityName", defaultValue = "Build")
     private String authorityName;
 
     @Parameter(property = "buildDetails.builderName")
     private String builderName;
 
-    @Parameter(property = "buildDetails.builderDescription")
+    @Parameter(property = "buildDetails.builderDescription", defaultValue = "Oracle Grafeas Build Details Metadata Generator")
     private String builderDescription;
 
     @Parameter(property = "buildDetails.builderVersion")
@@ -67,6 +68,9 @@ public class GrafeasBuildMojo extends AbstractMojo {
     @Parameter(property = "buildDetails.projectNumber")
     private String projectNumber;
 
+    @Parameter(property = "buildDetails.debugLog", defaultValue = "true")
+    private String debugLog;
+
 
 
     private void log(String msg) {
@@ -81,7 +85,7 @@ public class GrafeasBuildMojo extends AbstractMojo {
             // Setup arguments from parameters...
             GrafeasUtilities utils = getUtils(false);
             if (!utils.doesBuildDetailsNoteExist(builderName)) {
-                utils.createBuildDetailsNote(builderName, projectName + "-" + builderName, builderDescription);
+                utils.createBuildDetailsNote(builderName, infraName + "-" + builderName, builderDescription);
                 log("\nCreated Build Details Note Metadata.");
             }
             String uniqueId = builderName + System.currentTimeMillis();
@@ -94,7 +98,7 @@ public class GrafeasBuildMojo extends AbstractMojo {
             utils = getUtils(true);
 
             if (!utils.doesAttestationAuthorityNoteExist(authorityName)) {
-                utils.createAttestationAuthorityNote(authorityName, projectName + ":" + authorityName, builderDescription);
+                utils.createAttestationAuthorityNote(authorityName, infraName + ":" + authorityName, builderDescription);
                 log("\nCreated Build Attestation Note Metadata.");
             }
             uniqueId = authorityName + System.currentTimeMillis();
@@ -120,6 +124,14 @@ public class GrafeasBuildMojo extends AbstractMojo {
 
     public void setProjectName(String projectName) {
         this.projectName = projectName;
+    }
+
+    public String getInfraName() {
+        return infraName;
+    }
+
+    public void setInfraName(String infraName) {
+        this.infraName = infraName;
     }
 
     public String getAuthorityName() {
@@ -227,6 +239,15 @@ public class GrafeasBuildMojo extends AbstractMojo {
         return sourceFiles;
     }
 
+    public void setDebugLog(String debugLog) {
+        this.debugLog = debugLog;
+    }
+
+    public String getDebugLog() {
+        return debugLog;
+    }
+
+
     private GrafeasUtilities getUtils(boolean isAttestation) {
 
         // Location of Grafeas API server
@@ -241,13 +262,14 @@ public class GrafeasBuildMojo extends AbstractMojo {
 
         GrafeasUtilities utils = new GrafeasUtilities(grafeasUrl, projectName);
 
-        if (debug)
+        if ("true".equals(debugLog))
             utils.enableDebugging();
 
         if (builderVersion != null) {
             utils.setBuilderVersion(builderVersion);
         }
 
+        utils.setInfraName(infraName);
         utils.setUserName(userName);
         utils.setUserEmailAddress(userEmailAddress);
         utils.setBuildKeyId(buildKeyId);
