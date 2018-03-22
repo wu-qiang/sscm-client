@@ -1,7 +1,14 @@
 #! /bin/bash -
 
 # This script generates the attestation authority json data. The file is 
-# specified by environment variable  "ATTESTATION_AUTHORITY_FILE".
+# specified by environment variable.
+#
+# The environment variables come from Wercker environment. Should be set 
+# before running script.
+#
+# GPG_SCRIPT
+# ATTESTATION_AUTHORITY_FILE
+#
 
 ATTESTATION_AUTHORITY_TEMPLATE=$(cat <<EOF
 [
@@ -12,6 +19,11 @@ ATTESTATION_AUTHORITY_TEMPLATE=$(cat <<EOF
 ]
 EOF
 )
+
+if [ -z "${ATTESTATION_AUTHORITY_FILE}" ]; then
+    echo "\"ATTESTATION_AUTHORITY_FILE\" not set, please set it." >&2
+    exit 1
+fi
 
 name=$(${GPG_SCRIPT} --get-authority-names)
 if [ $? -ne 0 -o -z "$name" ]; then
