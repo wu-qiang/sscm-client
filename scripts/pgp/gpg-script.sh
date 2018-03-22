@@ -39,16 +39,9 @@ declare gpg_batch_cmd="$gpg_cmd --batch --no-tty --pinentry-mode loopback"
 # Functions
 #
 
-create_homedir() {
-  local check_only=false
-  [[ "$1" == "--check-only" ]] && check_only=true
-
+init_homedir() {
   # Make sure homedir is there, creating it if necessary
-  # If the --check option is used, then just check whether
-  # it exists. Always check/fix the directory permissions.
-
   if [ ! -d "$GPG_HOMEDIR" ]; then
-    [[ "$check_only" == "true" ]] && return 1
     echo "Creating $GPG_HOMEDIR"
     mkdir -p $GPG_HOMEDIR || {
       echo "Can't create '$GPG_HOMEDIR'!"
@@ -64,14 +57,24 @@ create_homedir() {
 }
 
 init_keyring() {
-  create_homedir || return 1
-  # For each authority, check whether we have a key, generate one if needed
+  local check_only="false"
+  [[ "$1" == "--check-only" ]] && check_only="true"
+
+  # For each authority, check whether we have a key. If an authority
+  # key doesn't exist, generate it, or (if --check-only) return an error.
+
   local authority=
   for authority in $(gpg_get_authority_names)
   do
-    if $gpg_cmd --list-keys --with-colons | grep ":${authority}:" > /dev/null; then
-      echo "Key for '$authority' already exists."
+    if $gpg_cmd --list-secret-keys --with-colons | grep ":${authority}:" > /dev/null; then
+      if [[ "$check_only" != "true" ]] ; then
+        echo "Key for '$authority' already exists."
+      fi
     else
+      if [[ "$check_only" == "true" ]] ; then
+        echo "Key for '$authority' not found."
+        return 1
+      fi
       echo "Generating key for '$authority', this may take a while ..."
       echo "RSA" | $gpg_batch_cmd --passphrase "${AUTHORITY_PASSPHRASES[$authority]}" --quick-gen-key "$authority"
       if [ $? -eq 0 ] ; then
@@ -238,10 +241,10 @@ print_usage() {
 # Main script
 #
 
-# Check that the homedir is there. If it is, assume the keyring 
-# has been initialized.
-
-create_homedir --check-only || exit 1
+init_homedir || exit 1
+if [ "$1" != "--init-keyring" ] ; then
+  init_keyring --check-only || exit 1
+fi
 
 case "$1" in
 --init-keyring)         init_keyring || exit 1
