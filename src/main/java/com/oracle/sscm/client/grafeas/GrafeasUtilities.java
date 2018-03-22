@@ -47,8 +47,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.zip.Adler32;
 import java.util.zip.CheckedInputStream;
 
+import com.oracle.sscm.client.script.GPGScriptWrapper;
 
-/**
+    /**
  * Utility class for creating Grafeas Build Details and Build Attestation Metadata
  */
 public class GrafeasUtilities {
@@ -68,6 +69,9 @@ public class GrafeasUtilities {
 
     // Project Name
     private String projectName;
+
+    // Infrastructure Name
+    private String infraName;
 
     // Builder version
     private String builderVersion = BUILDER_VERSION;
@@ -122,6 +126,20 @@ public class GrafeasUtilities {
      */
     public String getProjectName() {
         return projectName;
+    }
+
+    /**
+     * Set the infrastructure name
+     */
+    public void setInfraName(String infraName) {
+        this.infraName = infraName;
+    }
+
+    /**
+     * Get the infrastructure name
+     */
+    public String getInfraName() {
+        return infraName;
     }
 
     /**
@@ -268,7 +286,7 @@ public class GrafeasUtilities {
         log("Creating build detail note for name: " + name);
 
         Note note = new Note();
-        note.setName(getNoteName(name));
+        note.setName(getNoteName(infraName, name));
         note.setKind(Note.KindEnum.BUILD_DETAILS);
         note.setShortDescription(shortDesc);
         note.setLongDescription(longDesc);
@@ -276,7 +294,7 @@ public class GrafeasUtilities {
         note.setCreateTime(getCurrenttime());
         note.setOperationName(CREATE_BUILD_NOTE_OPERATION);
 
-        Note createdNote = api.createNote(getProjectName(), name, note);
+        Note createdNote = api.createNote(getInfraName(), name, note);
 
         log("Created note: " + createdNote);
     }
@@ -290,7 +308,7 @@ public class GrafeasUtilities {
 
         boolean fnd = false;
         try {
-            Note note = api.getNote(getProjectName(), name);
+            Note note = api.getNote(getInfraName(), name);
             log("doesBuildDetailsNoteExist: note " + note);
             fnd = true;
         } catch (ApiException e) {
@@ -321,9 +339,9 @@ public class GrafeasUtilities {
         log("Create occurrence name = " + occurrenceName);
 
         Occurrence occurrence = new Occurrence();
-        occurrence.setName(getOccurrenceName(occurrenceName));
+        occurrence.setName(getOccurrenceName(projectName, occurrenceName));
         occurrence.setResourceUrl(occurrenceUrl);
-        occurrence.setNoteName(getNoteName(noteName));
+        occurrence.setNoteName(getNoteName(infraName, noteName));
         occurrence.setKind(Occurrence.KindEnum.BUILD_DETAILS);
         occurrence.setCreateTime(getCurrenttime());
         occurrence.setOperationName(CREATE_BUILD_OCCURRENCE_OPERATION);
@@ -365,7 +383,7 @@ public class GrafeasUtilities {
         log("Create attestation authority name = " + name);
 
         Note note = new Note();
-        note.setName(getNoteName(name));
+        note.setName(getNoteName(getInfraName(), name));
         note.setKind(Note.KindEnum.ATTESTATION_AUTHORITY);
         note.setShortDescription(shortDesc);
         note.setLongDescription(longDesc);
@@ -386,7 +404,7 @@ public class GrafeasUtilities {
     public boolean doesAttestationAuthorityNoteExist(String name) {
         boolean fnd = false;
         try {
-            Note note = api.getNote(getProjectName(), name);
+            Note note = api.getNote(getInfraName(), name);
             log("doesAttestationAuthorityNoteExist: note " + note);
             if (note.getKind() == Note.KindEnum.ATTESTATION_AUTHORITY) {
                 fnd = true;
@@ -415,19 +433,19 @@ public class GrafeasUtilities {
      *
      * @throws ApiException if the Api call fails
      */
-    public void createAttestationOccurrence(String occurrenceName, String occurrenceUrl, String noteName) throws ApiException {
+    public void createAttestationOccurrence(String occurrenceName, String occurrenceUrl, String noteName) throws ApiException, IOException {
 
         Occurrence occurrence = new Occurrence();
-        occurrence.setName(getOccurrenceName(occurrenceName));
+        occurrence.setName(getOccurrenceName(projectName, occurrenceName));
         occurrence.setResourceUrl(occurrenceUrl);
-        occurrence.setNoteName(getNoteName(noteName));
+        occurrence.setNoteName(getNoteName(infraName, noteName));
         // TBD: client-java gets error on setting kind to attestation.
         //occurrence.setKind(Occurrence.KindEnum.ATTESTATION);
 
         occurrence.setCreateTime(getCurrenttime());
         occurrence.setOperationName(CREATE_ATTESTATION_OCCURRENCE_OPERATION);
 
-        occurrence.setAttestation(createAttestation());
+        occurrence.setAttestation(createAttestation(occurrence.getResourceUrl()));
 
         Occurrence createdAttestationOccurrence = api.createOccurrence(getProjectName(), occurrence);
 
@@ -493,7 +511,10 @@ public class GrafeasUtilities {
 
         BuildType bldType = new BuildType();
         bldType.setBuilderVersion(getBuilderVersion());
-        bldType.setSignature(bldSig);
+
+        if (buildKeyId != null || buildPublicKey != null) {
+            bldType.setSignature(bldSig);
+        }
 
         return bldType;
     }
@@ -652,15 +673,21 @@ public class GrafeasUtilities {
 
     // Return Attestation
     //
-    private Attestation createAttestation() {
+    private Attestation createAttestation(String data) throws IOException {
         PgpSignedAttestation signedAttest = new PgpSignedAttestation();
 
-        if (buildKeyId != null) {
+        GPGScriptWrapper gpg = new GPGScriptWrapper();
+
+        String signedData = gpg.sign(data);
+        String key = gpg.getKeyID(signedData);
+
+        if (signedData != null && key != null) {
+
             // Create signature with key id
-            signedAttest.setSignature("AAAABBBCCCDDDEEEFFFGGGHHHIIIJJJKKKLLLMMMNNNOOOPPPQQQRRRSSSTTTUUUVVVWWWXXXYYYYZZZZ");
+            signedAttest.setSignature(signedData);
             signedAttest.setContentType(PgpSignedAttestation.ContentTypeEnum.SIMPLE_SIGNING_JSON);
 
-            signedAttest.setPgpKeyId(buildKeyId);
+            signedAttest.setPgpKeyId(key);
         }
 
         Attestation attest = new Attestation();
@@ -670,20 +697,25 @@ public class GrafeasUtilities {
     }
 
     // Get projects prefix - projects/<project name>
-    private String getProjectPrefix() {
-        return PROJECTS + "/" + getProjectName();
+    private String getProjectPrefix(String name) {
+        return PROJECTS + "/" + name;
+    }
+
+    // Get projects prefix - projects/<infra name>
+    private String getInfraPrefix() {
+        return PROJECTS + "/" + getInfraName();
     }
 
     // Get note name - projects/<project name>/notes/<note name>
     //
-    private String getNoteName(String name) {
-        return getProjectPrefix() + "/" + NOTES + "/" + name;
+    private String getNoteName(String project, String name) {
+        return getProjectPrefix(project) + "/" + NOTES + "/" + name;
     }
 
     // Get occurrence name - projects/<project name>/occurrences/<occurrence name>
     //
-    private String getOccurrenceName(String name) {
-        return getProjectPrefix() + "/" + OCCURRENCES + "/" + name;
+    private String getOccurrenceName(String project, String name) {
+        return getProjectPrefix(project) + "/" + OCCURRENCES + "/" + name;
     }
 
     // Create a checksum for a file using a message digest.
