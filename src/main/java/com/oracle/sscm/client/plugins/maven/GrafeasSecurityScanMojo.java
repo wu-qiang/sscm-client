@@ -162,7 +162,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       JSONObject occurrences = new JSONObject();
       try {
         JSONArray listOccurrences = generateOccurrenceList(report, scanResourceUrl);
-        listOccurrences.add(attestationOccurrence);
+        //listOccurrences.add(attestationOccurrence);
         if (listOccurrences != null) {
           occurrences.put("occurrences", listOccurrences);
           if (postGrafeas) log("Grafeas Occurrences generated: " + listOccurrences.size());
