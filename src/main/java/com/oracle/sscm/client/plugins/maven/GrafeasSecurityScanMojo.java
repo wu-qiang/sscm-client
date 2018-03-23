@@ -509,9 +509,14 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         note.put("kind", "PACKAGE_VULNERABILITY");
         note.put("vulnerabilityType", vulnerabilityType);
       } else {
+        JSONObject vulnerabilityType = new JSONObject();
+        vulnerabilityType.put("severity", "LOW");
+        vulnerabilityType.put("cvssScore", new Double("1.0"));
+
         note.put("name", name);
         note.put("shortDescription", "Security Scan Attestation Note");
-        note.put("kind", "KIND_UNSPECIFIED");
+        note.put("kind", "PACKAGE_VULNERABILITY");
+        note.put("vulnerabilityType", vulnerabilityType);
       }
 
       // Done
