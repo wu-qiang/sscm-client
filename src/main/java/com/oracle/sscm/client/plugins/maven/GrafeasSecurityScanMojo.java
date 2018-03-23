@@ -534,7 +534,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
         Attestation attest = new Attestation();
         attest.setPgpSignedAttestation(signedAttest);
-
+        log("created attestation : " + attest.toString());
         return attest;
     }
 
