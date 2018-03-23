@@ -162,7 +162,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       JSONObject occurrences = new JSONObject();
       try {
         JSONArray listOccurrences = generateOccurrenceList(report, scanResourceUrl);
-        //listOccurrences.add(attestationOccurrence);
+        listOccurrences.add(attestationOccurrence);
         if (listOccurrences != null) {
           occurrences.put("occurrences", listOccurrences);
           if (postGrafeas) log("Grafeas Occurrences generated: " + listOccurrences.size());
@@ -511,7 +511,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       } else {
         JSONObject vulnerabilityType = new JSONObject();
         vulnerabilityType.put("severity", "LOW");
-        vulnerabilityType.put("cvssScore", new Double("1.0"));
+        vulnerabilityType.put("cvssScore", new Double("1"));
 
         note.put("name", name);
         note.put("shortDescription", "Security Scan Attestation Note");
