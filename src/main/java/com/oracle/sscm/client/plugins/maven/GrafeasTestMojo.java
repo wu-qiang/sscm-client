@@ -1,5 +1,7 @@
 package com.oracle.sscm.client.plugins.maven;
 
+import io.grafeas.v1alpha1.model.Attestation;
+import io.grafeas.v1alpha1.model.PgpSignedAttestation;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -14,14 +16,10 @@ import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
 
+import com.oracle.sscm.client.script.GPGScriptWrapper;
+
 @Mojo(name = "testAttestation")
 public class GrafeasTestMojo extends AbstractMojo {
-
-    @Parameter(property = "testAttestation.signature")
-    private String signature;
-
-    @Parameter(property = "testAttestation.pgpKeyID")
-    private String pgpKeyID;
 
     @Parameter(property = "testAttestation.projectId")
     private String projectId;
@@ -34,6 +32,7 @@ public class GrafeasTestMojo extends AbstractMojo {
 
     private String noteName;
     private String grafeasOccurrence;
+
     //
     // Default values for Grafeas Notes and Occurrences for test:
     //  - <URL>/v1alpha1/projects/{projectId}/notes/qa
@@ -54,10 +53,8 @@ public class GrafeasTestMojo extends AbstractMojo {
     }
 
   public void execute() throws MojoExecutionException {
-    
-      System.out.println("Signature = " + signature);
+
       System.out.println("GrafeasUrl = " + grafeasUrl);
-      System.out.println("pgpKeyID = " + pgpKeyID);
       System.out.println("projectId = " + projectId);
       System.out.println("resourceUrl = " + resourceUrl);
 
@@ -71,6 +68,7 @@ public class GrafeasTestMojo extends AbstractMojo {
       grafeasOccurrence = String.format(GRAFEAS_OCCURRENCES, projectId);
 
       try {
+
          JSONObject occurrence = createAttestationOccurrence(); 
          log(String.format("grafeas occurrences = " + grafeasOccurrence));
          checkQAAttestationAuthorityNote(occurrence); 
@@ -98,24 +96,40 @@ public class GrafeasTestMojo extends AbstractMojo {
        }
     }
   */
-  private JSONObject createAttestationOccurrence() {
-      //log(String.format("Creating Occurrence for '%s'", occurrence.get("resourceUrl")));
+  private JSONObject createAttestationOccurrence() throws Exception {
       log(String.format("Creating Occurrence"));
       JSONObject occurrence = new JSONObject();
-      JSONObject attestation = new JSONObject();
-      JSONObject pgpSignedAttestation = new JSONObject();
-      pgpSignedAttestation.put("signature", signature);
-      //What should the contentType be? 
-      //pgpSignedAttestation.put("contentType", "application/vnd.gcr.image.url.v1");
-      pgpSignedAttestation.put("pgpKeyId", pgpKeyID);
-      attestation.put("pgpSignedAttestation", pgpSignedAttestation);
-      occurrence.put("attestation", attestation);
+      //occurrence.put("createTime", getCurrenttime());
       occurrence.put("noteName", noteName);
       occurrence.put("resourceUrl", resourceUrl);
       String occurrenceName = "QATested" + System.currentTimeMillis();
       occurrence.put("name", "projects/" + projectId + "/occurrences/" + occurrenceName);
+      occurrence.put("attestation", createAttestation(resourceUrl).toString());
       System.out.println("occurrence = " + occurrence);
       return occurrence;
+  }
+
+  private Attestation createAttestation(String data) throws IOException {
+
+        PgpSignedAttestation signedAttest = new PgpSignedAttestation();
+        GPGScriptWrapper gpg = new GPGScriptWrapper();
+
+        String signedData = gpg.sign(data);
+        String key = gpg.getKeyID(signedData);
+
+        if (signedData != null && key != null) {
+
+            // Create signature with key id
+            signedAttest.setSignature(signedData);
+            signedAttest.setContentType(PgpSignedAttestation.ContentTypeEnum.SIMPLE_SIGNING_JSON);
+
+            signedAttest.setPgpKeyId(key);
+        }
+
+        Attestation attest = new Attestation();
+        attest.setPgpSignedAttestation(signedAttest);
+
+        return attest;
   }
 
   private void uploadAttestationOccurrence(String occurrenceUrl, JSONObject occurrence) throws Exception {
@@ -141,6 +155,8 @@ public class GrafeasTestMojo extends AbstractMojo {
      return (JSONObject) object;
   }
 
+
+
   /* 
    *  Check to see if there is a QA note already present. If not, add one
    */
@@ -154,8 +170,7 @@ public class GrafeasTestMojo extends AbstractMojo {
         // Create Note when not present to satisfy checks...
         JSONObject note = createQAAttestationAuthorityNote();
         log(String.format("Created JSON: %s", note.toJSONString()));
-        //String url = (cveIndex != -1) ? noteUrl.substring(0, cveIndex) : noteUrl;
-        //String postQuery = String.format("%s=%s", GRAFEAS_NOTEID_QUERY_PARAM, note.get("shortDescription"));
+
         String postQuery = String.format("%s=%s", GRAFEAS_NOTEID_QUERY_PARAM, "qa");
         String grafeasNotes = String.format(GRAFEAS_NOTES, projectId);
         log("GRAFEAS_NOTES = " + grafeasNotes);
