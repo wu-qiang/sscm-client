@@ -86,7 +86,7 @@ init_keyring() {
     fi
   done
 
-  if [[ "$check_only" != "true" ] ; then
+  if [[ "$check_only" != "true" ]] ; then
     $gpg_cmd --list-keys
   fi
 
