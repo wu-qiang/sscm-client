@@ -141,7 +141,8 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         String attestationName = SECURITY_SCAN_ATTEST + "-" + generateRandomChars(RANDOMID_CANDIDATE_CHARS,20);
         attestationOccurrence.put("name", attestationName);
         attestationOccurrence.put("resourceUrl", scanResourceUrl);
-        attestationOccurrence.put("noteName", "SecurityScan");
+        String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
+        attestationOccurrence.put("noteName", attestNoteName);
         attestationOccurrence.put("kind", "KIND_UNSPECIFIED");
         attestationOccurrence.put("attestation", attest.toString());
 
@@ -512,8 +513,11 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
     void uploadOccurrenceList(JSONArray listOccurrences, String notePrefixUrl, String occurrencesUrl) throws Exception {
       for (Object o: listOccurrences) {
         JSONObject occurrence = (JSONObject) o;
-        String noteUrl = notePrefixUrl + ((String) occurrence.get("noteName"));
-        checkNoteForOccurrence(noteUrl, occurrence);
+        String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
+        if (!(((String) occurrence.get("noteName")).equals(attestNoteName))) {
+          String noteUrl = notePrefixUrl + ((String) occurrence.get("noteName"));
+          checkNoteForOccurrence(noteUrl, occurrence);
+        }
         createOccurrence(occurrencesUrl, occurrence);
       }
     }
@@ -574,19 +578,6 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
     private void checkNoteForOccurrence(String noteUrl, JSONObject occurrence) throws Exception {
       log(String.format("\nChecking for Note '%s'", noteUrl));
-      /* String project_notes_url = noteUrl.substring(0, noteUrl.indexOf("notes") + 5);
-      log(String.format("\nChecking for notes project '%s'", project_notes_url));
-      HTTPRequest checkNotesRequest = new HTTPRequest(HTTPRequest.Method.GET,new URL(project_notes_url));
-      HTTPResponse checkNotesResponse = checkNotesRequest.send();
-      if (!checkNotesResponse.indicatesSuccess()) {
-        HTTPRequest notesRequest = new HTTPRequest(HTTPRequest.Method.POST, new URL(project_notes_url));
-        notesRequest.setHeader("Content-Type", "application/json");
-        HTTPResponse notesResponse = notesRequest.send();
-        if (!notesResponse.indicatesSuccess()) {
-          log(String.format("Failed to create notes project: '%s'", notesResponse.getContent()));
-        }
-      }
-      log(String.format("\nChecking for Note '%s'", noteUrl));*/
       HTTPRequest checkRequest = new HTTPRequest(HTTPRequest.Method.GET, new URL(noteUrl));
       HTTPResponse checkResponse = checkRequest.send();
       if (!checkResponse.indicatesSuccess()) {
