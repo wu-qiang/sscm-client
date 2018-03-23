@@ -126,7 +126,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
         //generate resourceUrl for this scan
         scanTarget = projectId + "-" + PROJECT_VERSION + ".jar";
-        MessageDigest digest = MessageDigest.getInstance("SHA2");
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(scanTarget.getBytes("UTF-8"));
         StringBuffer hexString = new StringBuffer();
         for (int i = 0; i < hash.length; i++) {
@@ -134,7 +134,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
            if(hex.length() == 1) hexString.append('0');
            hexString.append(hex);
         }
-        scanResourceUrl = "file://sha2:" + hexString.toString() + ":" + scanTarget;
+        scanResourceUrl = "file://sha-256:" + hexString.toString() + ":" + scanTarget;
         attest = createAttestation(scanResourceUrl);        
 
         //generate security scan attestation occurrence
