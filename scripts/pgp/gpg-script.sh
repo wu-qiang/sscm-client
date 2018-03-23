@@ -105,8 +105,11 @@ gpg_get_authority_names() {
 gpg_get_authority_key() {
   # key's short id is the last 8 hex digits of its finger print
   # this is a bit fragile, but works for now
-  $gpg_cmd --list-keys --with-colons "$1" | grep pub:u:2048:1: | cut -c 22-29
-  return $?
+  local tmp=
+  tmp=$($gpg_cmd --list-keys --with-colons "$1" 2>/dev/null | grep pub:u:2048:1:) || return 1
+  [[ -n "$tmp" && "$tmp" != "" ]] || return 1
+  echo "$tmp" | cut -c 22-29
+  return 0
 }
 
 # Sign a string, base64 encode the result, and return it
@@ -114,14 +117,8 @@ gpg_sign() {
   local authority="$1"
   local data="$2"
   local tmp=
-  tmp=$(gpg_get_authority_key "$authority")
-  if [[ $? -ne 0 || -z "$tmp" || "$tmp" = "" ]] ; then
-    return 1
-  fi
-  tmp=$(echo "$data" | $gpg_batch_cmd --passphrase "${AUTHORITY_PASSPHRASES[$authority]}" --user "$authority" --sign --armor)
-  if [ $? -ne 0 ] ; then
-    return 1
-  fi
+  tmp=$(gpg_get_authority_key "$authority") || return 1
+  tmp=$(echo "$data" | $gpg_batch_cmd --passphrase "${AUTHORITY_PASSPHRASES[$authority]}" --user "$authority" --sign --armor) || return 1
   echo "$tmp" | base64 --wrap=0
   return 0
 }
@@ -153,19 +150,26 @@ gpg_test() {
 
   local status=0
   local data="test one two three"
+  local authority=
   local sig=
 
   # test that we can sign something using any of the authority keys and it'll verify
-  echo "Test signing/verification for all authority names ..."
-  for i in $(gpg_get_authority_names)
+  for authority in $(gpg_get_authority_names)
   do
-    sig=$(gpg_sign "$i" "$data") || {
-      echo "Test failed: signing failed for authority '$i'"
-    }
-    gpg_verify "$sig" || {
-      echo "Test failed: verification failed for authority '$i'"
+    echo "Test signing for '$authority' ..."
+    if sig=$(gpg_sign "$authority" "$data") ; then
+      echo "Test succeeded: signing succeeded for '$authority'"
+    else
+      echo "Test failed: signing failed for '$authority'"
       ((status++))
-    }
+    fi
+    echo "Test verification for '$authority' ..."
+    if gpg_verify "$sig" ; then
+      echo "Test succeeded: verification succeeded for '$authority'"
+    else
+      echo "Test failed: verification failed for '$authority'"
+      ((status++))
+    fi
   done
 
   # test that signing fails if don't have, e.g., valid keyid
