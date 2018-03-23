@@ -3,16 +3,19 @@
 #
 # Script to provision project names into grafeas server
 #
-
-#
-# Depends on the following environment variables:
-#
-# GRAFEAS_SERVER_ADDRESS
-# GRAFEAS_SERVER_PORT
+# host:port for grafeas server passed as $1
 #
 
 declare PROJECT_NAMES="projects/weblogic-kubernetes-operator projects/build-infrastructure"
-declare GRAFEAS_URL="http://${GRAFEAS_SERVER_ADDRESS}:${GRAFEAS_SERVER_PORT}/v1alpha1/projects"
+declare GRAFEAS_URL=
+
+if [[ -n "$1" ]] ; then
+    GRAFEAS_URL="http://${1}/v1alpha1/projects"
+    echo "GRAFEAS_URL set to '$GRAFEAS_URL'"
+else
+    echo "Grafeas host:port not provided!"
+    exit 1
+fi
 
 grafeas_project_exists() {
     local project="$1"
