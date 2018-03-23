@@ -19,13 +19,13 @@ fi
 declare -a AUTHORITY_NAMES
 declare -A AUTHORITY_PASSPHRASES
 
-AUTHORITY_NAMES[0]="/projects/build-infrastructure/attestationAuthorities/Build"
+AUTHORITY_NAMES[0]="projects/build-infrastructure/attestationAuthorities/Build"
 AUTHORITY_PASSPHRASES[$AUTHORITY_NAMES[0]]="super-secret-0"
 
-AUTHORITY_NAMES[1]="/projects/build-infrastructure/attestationAuthorities/Test"
+AUTHORITY_NAMES[1]="projects/build-infrastructure/attestationAuthorities/Test"
 AUTHORITY_PASSPHRASES[$AUTHORITY_NAMES[1]]="super-secret-1"
 
-AUTHORITY_NAMES[2]="/projects/build-infrastructure/attestationAuthorities/SecurityScan"
+AUTHORITY_NAMES[2]="projects/build-infrastructure/attestationAuthorities/SecurityScan"
 AUTHORITY_PASSPHRASES[$AUTHORITY_NAMES[2]]="super-secret-2"
 
 #
@@ -66,7 +66,7 @@ init_keyring() {
   local authority=
   for authority in $(gpg_get_authority_names)
   do
-    if $gpg_cmd --list-secret-keys --with-colons | grep ":${authority}:" > /dev/null; then
+    if $gpg_cmd --list-keys --with-colons | grep ":${authority}:" > /dev/null; then
       if [[ "$check_only" != "true" ]] ; then
         echo "Key for '$authority' already exists."
       fi
@@ -148,7 +148,7 @@ gpg_getdata() {
 
 gpg_test() {
   #
-  # TODO: add test for get_keyid and get_data
+  # TODO: add test for gpg_getkeyid and gpg_getdata
   #
 
   local status=0
