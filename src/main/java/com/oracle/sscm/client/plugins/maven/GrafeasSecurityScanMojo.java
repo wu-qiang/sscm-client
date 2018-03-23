@@ -138,7 +138,8 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         attest = createAttestation(scanResourceUrl);        
 
         //generate security scan attestation occurrence
-        String attestationName = SECURITY_SCAN_ATTEST + "-" + generateRandomChars(RANDOMID_CANDIDATE_CHARS,20);
+        String attestationName = GRAFEAS_PROJECTS + projectId + URL_SLASH + GRAFEAS_OCCURRENCES_KEY
+                                 + SECURITY_SCAN_ATTEST + "-" + generateRandomChars(RANDOMID_CANDIDATE_CHARS,20);
         attestationOccurrence.put("name", attestationName);
         attestationOccurrence.put("resourceUrl", scanResourceUrl);
         String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
