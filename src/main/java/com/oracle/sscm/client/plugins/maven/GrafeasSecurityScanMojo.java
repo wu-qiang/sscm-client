@@ -486,26 +486,33 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
     private JSONObject createNoteForOccurrence(JSONObject occurrence) {
       JSONObject note = null;
+      note = new JSONObject();
 
       // Get note data...
       String name = (String) occurrence.get("noteName");
       int cveIndex = name.lastIndexOf('/');
       String CVE = (cveIndex != -1) ? name.substring(cveIndex+1) : name;
-      JSONObject vulnerabilityDetails = (JSONObject) occurrence.get("vulnerabilityDetails");
-      Double cvssScore = (Double) vulnerabilityDetails.get("cvssScore");
-      String severity = (String) vulnerabilityDetails.get("severity");
+      String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
+      if (!(((String) occurrence.get("noteName")).equals(attestNoteName))) {
+        JSONObject vulnerabilityDetails = (JSONObject) occurrence.get("vulnerabilityDetails");
+        Double cvssScore = (Double) vulnerabilityDetails.get("cvssScore");
+        String severity = (String) vulnerabilityDetails.get("severity");
 
-      // Build the vulnerability type...
-      JSONObject vulnerabilityType = new JSONObject();
-      vulnerabilityType.put("severity", severity);
-      vulnerabilityType.put("cvssScore", cvssScore);
+        // Build the vulnerability type...
+        JSONObject vulnerabilityType = new JSONObject();
+        vulnerabilityType.put("severity", severity);
+        vulnerabilityType.put("cvssScore", cvssScore);
 
-      // Build the note...
-      note = new JSONObject();
-      note.put("name", name);
-      note.put("shortDescription", CVE);
-      note.put("kind", "PACKAGE_VULNERABILITY");
-      note.put("vulnerabilityType", vulnerabilityType);
+        // Build the note...
+        note.put("name", name);
+        note.put("shortDescription", CVE);
+        note.put("kind", "PACKAGE_VULNERABILITY");
+        note.put("vulnerabilityType", vulnerabilityType);
+      } else {
+        note.put("name", name);
+        note.put("shortDescription", "Security Scan Attestation Note");
+        note.put("kind", "KIND_UNSPECIFIED");
+      }
 
       // Done
       return note;
@@ -514,11 +521,11 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
     void uploadOccurrenceList(JSONArray listOccurrences, String notePrefixUrl, String occurrencesUrl) throws Exception {
       for (Object o: listOccurrences) {
         JSONObject occurrence = (JSONObject) o;
-        String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
-        if (!(((String) occurrence.get("noteName")).equals(attestNoteName))) {
+        //String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
+        //if (!(((String) occurrence.get("noteName")).equals(attestNoteName))) {
           String noteUrl = notePrefixUrl + ((String) occurrence.get("noteName"));
           checkNoteForOccurrence(noteUrl, occurrence);
-        }
+        //}
         createOccurrence(occurrencesUrl, occurrence);
       }
     }
