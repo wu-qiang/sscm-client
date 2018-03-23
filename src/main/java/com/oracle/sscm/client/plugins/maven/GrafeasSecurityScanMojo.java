@@ -10,6 +10,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -60,7 +61,9 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
     public static final String GRAFEAS_NOTES = GRAFEAS_PROJECTS_PREFIX + "{projectsId}/notes";
     public static final String GRAFEAS_OCCURRENCES = "%s" + GRAFEAS_PROJECTS_PREFIX + "%s/occurrences";
     public static final String DEFAULT_OWASP_DEPENDENCY_CHECK_REPORT_JSON = "dependency-check-report.json";
-    public static final String RANDOMID_CANDIDATE_CHARS = "abcdefghijklmnopqrstuvwxyz-0123456789";
+    public static final String RANDOMID_CANDIDATE_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+    public static final String PROJECT_VERSION = "0.1.0";
+    public static final String SECURITY_SCAN_ATTEST = "SecurityScanAttestation";
 
 
     // Ordered to allow finding the best Confidence from a List
@@ -109,12 +112,40 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       // Parse the OWSAP dependency-check-report.json...
       JSONObject report = null;
       String projectId = null;
+      String scanTarget = null;
+      Attestation attest = null;
+      String scanResourceUrl = null;
+      JSONObject attestationOccurrence = new JSONObject();
+
       try {
         if (postGrafeas) log("OWASP dependency-check report: " + projectReportCompleteFileName);
         report = parseDependencyCheckReport(dependencyReportJSON);
         JSONObject projectInfo = (JSONObject) report.get("projectInfo");
         String projectReportDate = (projectInfo != null) ? (String) projectInfo.get("reportDate") : "UNKNOWN";
         projectId = (projectInfo != null) ? (String) projectInfo.get("name"): "UNKNOWN";
+
+        //generate resourceUrl for this scan
+        scanTarget = projectId + "-" + PROJECT_VERSION + ".jar";
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(scanTarget.getBytes("UTF-8"));
+        StringBuffer hexString = new StringBuffer();
+        for (int i = 0; i < hash.length; i++) {
+           String hex = Integer.toHexString(0xff & hash[i]);
+           if(hex.length() == 1) hexString.append('0');
+           hexString.append(hex);
+        }
+        scanResourceUrl = "file://sha-256:" + hexString.toString() + ":" + scanTarget;
+        attest = createAttestation(scanResourceUrl);        
+
+        //generate security scan attestation occurrence
+        String attestationName = SECURITY_SCAN_ATTEST + "-" + generateRandomChars(RANDOMID_CANDIDATE_CHARS,20);
+        attestationOccurrence.put("name", attestationName);
+        attestationOccurrence.put("resourceUrl", scanResourceUrl);
+        String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
+        attestationOccurrence.put("noteName", attestNoteName);
+        attestationOccurrence.put("kind", "KIND_UNSPECIFIED");
+        attestationOccurrence.put("attestation", attest.toString());
+
         if (postGrafeas) {
           log("OWASP dependency-check report was generated on: " + projectReportDate);
           log("Grafeas {projectsId} for Occurrences: " + projectId);
@@ -129,7 +160,8 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       // Generate Grafeas Occurrences base on reported vulnerabilities...
       JSONObject occurrences = new JSONObject();
       try {
-        JSONArray listOccurrences = generateOccurrenceList(report);
+        JSONArray listOccurrences = generateOccurrenceList(report, scanResourceUrl);
+        listOccurrences.add(attestationOccurrence);
         if (listOccurrences != null) {
           occurrences.put("occurrences", listOccurrences);
           if (postGrafeas) log("Grafeas Occurrences generated: " + listOccurrences.size());
@@ -164,32 +196,6 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
           if (postGrafeas) {
             log("Creating Notes at: " + urlGrafeasNotes);
             log("Creating Occurrences at: " + urlGrafeasOccurrences);
-
-            //create projects if not already exists
-            String projectUrl = urlGrafeas + GRAFEAS_VERSION + "projects";
-            String projNotesName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID;
-            JSONObject projNotes = new JSONObject();
-            projNotes.put("name", projNotesName);
-            HTTPRequest request = new HTTPRequest(HTTPRequest.Method.POST, new URL(projectUrl));
-            request.setHeader("Content-Type", "application/json");
-            request.setQuery(projNotes.toJSONString());
-            HTTPResponse response = request.send();
-            if (!response.indicatesSuccess())
-              log("Project already exists: " + response.getContent());
-            else
-              log("Created project for notes " + GRAFEAS_NOTES_PROJECTID);
-
-            String projOccurrencesName = GRAFEAS_PROJECTS + projectId;
-            JSONObject projOccurrences = new JSONObject();
-            projOccurrences.put("name", projOccurrencesName);
-            HTTPRequest projRequest = new HTTPRequest(HTTPRequest.Method.POST, new URL(projectUrl));
-            projRequest.setHeader("Content-Type", "application/json");
-            projRequest.setQuery(projOccurrences.toJSONString());
-            HTTPResponse projResponse = projRequest.send();
-            if (!projResponse.indicatesSuccess())
-              log("Project already exists: " + projResponse.getContent());
-            else
-              log("Created project" + projOccurrencesName);
 
             uploadOccurrenceList(listOccurrences, urlGrafeasNotePrefix, urlGrafeasOccurrences);
           }
@@ -277,7 +283,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       return (JSONObject) object;
     }
 
-    JSONArray generateOccurrenceList(JSONObject report) throws Exception {
+    JSONArray generateOccurrenceList(JSONObject report, String scanResourceUrl) throws Exception {
       JSONArray listOccurrences = null;
       JSONObject projectInfo = (JSONObject) report.get("projectInfo");
       String projectId = (projectInfo != null) ? (String) projectInfo.get("name"): "UNKNOWN";
@@ -302,7 +308,6 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
           // Build the occurrence from the vulnerability and dependency data...
           JSONObject occurrence = null;
-          String resourceUrl = createResourceURL(dependency, listDependencies);
           JSONObject packageIssue = createPackageIssue(dependency);
 
           // For each vulnerability, create occurrence, add info and place into the list of Occurrences...
@@ -313,8 +318,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
             if (occurrence != null) {
               String randomId = authorityName + "-" + generateRandomChars(RANDOMID_CANDIDATE_CHARS,20);
               occurrence.put("name", GRAFEAS_PROJECTS + projectId + URL_SLASH + GRAFEAS_OCCURRENCES_KEY + randomId);
-              occurrence.put("resourceUrl", resourceUrl);
-              occurrence.put("attestation", createAttestation(resourceUrl).toString());
+              occurrence.put("resourceUrl", scanResourceUrl);
               occurrence.put("createTime", projectReportDate);
               listOccurrences.add(occurrence);
             }
@@ -509,8 +513,11 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
     void uploadOccurrenceList(JSONArray listOccurrences, String notePrefixUrl, String occurrencesUrl) throws Exception {
       for (Object o: listOccurrences) {
         JSONObject occurrence = (JSONObject) o;
-        String noteUrl = notePrefixUrl + ((String) occurrence.get("noteName"));
-        checkNoteForOccurrence(noteUrl, occurrence);
+        String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
+        if (!(((String) occurrence.get("noteName")).equals(attestNoteName))) {
+          String noteUrl = notePrefixUrl + ((String) occurrence.get("noteName"));
+          checkNoteForOccurrence(noteUrl, occurrence);
+        }
         createOccurrence(occurrencesUrl, occurrence);
       }
     }
@@ -571,19 +578,6 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
     private void checkNoteForOccurrence(String noteUrl, JSONObject occurrence) throws Exception {
       log(String.format("\nChecking for Note '%s'", noteUrl));
-      /* String project_notes_url = noteUrl.substring(0, noteUrl.indexOf("notes") + 5);
-      log(String.format("\nChecking for notes project '%s'", project_notes_url));
-      HTTPRequest checkNotesRequest = new HTTPRequest(HTTPRequest.Method.GET,new URL(project_notes_url));
-      HTTPResponse checkNotesResponse = checkNotesRequest.send();
-      if (!checkNotesResponse.indicatesSuccess()) {
-        HTTPRequest notesRequest = new HTTPRequest(HTTPRequest.Method.POST, new URL(project_notes_url));
-        notesRequest.setHeader("Content-Type", "application/json");
-        HTTPResponse notesResponse = notesRequest.send();
-        if (!notesResponse.indicatesSuccess()) {
-          log(String.format("Failed to create notes project: '%s'", notesResponse.getContent()));
-        }
-      }
-      log(String.format("\nChecking for Note '%s'", noteUrl));*/
       HTTPRequest checkRequest = new HTTPRequest(HTTPRequest.Method.GET, new URL(noteUrl));
       HTTPResponse checkResponse = checkRequest.send();
       if (!checkResponse.indicatesSuccess()) {
