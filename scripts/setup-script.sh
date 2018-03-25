@@ -18,6 +18,11 @@ echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/pgp/gpg-script.sh $SCRIPTS_DIR"
 cp -f $SSCM_BUILD_DIR/sscm-client/scripts/pgp/gpg-script.sh $SCRIPTS_DIR
 echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/sbas-check.sh $SCRIPTS_DIR"
 cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/sbas-check.sh $SCRIPTS_DIR
+echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/grafeas/provision-grafeas.sh $SCRIPTS_DIR"
+cp -f $SSCM_BUILD_DIR/sscm-client/scripts/grafeas/provision-grafeas.sh $SCRIPTS_DIR
+echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/authorities-generator.sh $SCRIPTS_DIR"
+cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/authorities-generator.sh $SCRIPTS_DIR
+
 echo "chmod +x $SCRIPTS_DIR/*"
 chmod +x $SCRIPTS_DIR/*
 echo "ls -ld $WERCKER_CACHE_DIR/*.sh"
