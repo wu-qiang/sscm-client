@@ -26,19 +26,26 @@ if [ -z "${ATTESTATION_AUTHORITY_FILE}" ]; then
 fi
 
 # TODO Support more than one attestation.
-name=$(${GPG_SCRIPT} --get-authority-names)
-if [ $? -ne 0 -o -z "$name" ]; then
-    echo "Failed to get the attestation authority name!" >&2
+names=$(${GPG_SCRIPT} --get-authority-names)
+if [ $? -ne 0 -o -z "$names" ]; then
+    echo "Failed to get the attestation authority names!" >&2
     exit 1
 fi
 
-key=$(${GPG_SCRIPT} --get-authority-keyid "$name")
-if [ $? -ne 0 -o -z "$key" ]; then
-    echo "Failed to get key id for the attestation $name!" >&2
-    exit 1
-fi
+rm -f "${ATTESTATION_AUTHORITY_FILE}"
+touch "${ATTESTATION_AUTHORITY_FILE}"
 
-echo "${ATTESTATION_AUTHORITY_TEMPLATE}" | \
-    sed -e 's!@ATTESTATION_NAME@!'"$name"'!' \
-        -e 's!@ATTESTATION_KEY@!'"$key"'!' \
-        >"${ATTESTATION_AUTHORITY_FILE}"
+for name in $names
+do
+    key=$(${GPG_SCRIPT} --get-authority-keyid "$name")
+    if [ $? -ne 0 -o -z "$key" ]; then
+        echo "Failed to get key id for the attestation $name!" >&2
+        exit 1
+    fi
+
+    echo "${ATTESTATION_AUTHORITY_TEMPLATE}" | \
+        sed -e 's!@ATTESTATION_NAME@!'"$name"'!' \
+            -e 's!@ATTESTATION_KEY@!'"$key"'!' \
+            >"${ATTESTATION_AUTHORITY_FILE}"
+done
+
