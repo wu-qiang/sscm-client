@@ -514,9 +514,9 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         vulnerabilityType.put("cvssScore", new Double("1"));
 
         note.put("name", name);
-        note.put("shortDescription", "Security Scan Attestation Note");
-        note.put("kind", "PACKAGE_VULNERABILITY");
-        note.put("vulnerabilityType", vulnerabilityType);
+        note.put("shortDescription", "SecurityScan");
+        note.put("longDescription", "Oracle Grafeas Security Scan Metadata Generator");
+        note.put("kind", "KIND_UNSPECIFIED");
       }
 
       // Done
@@ -596,7 +596,6 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       if (!checkResponse.indicatesSuccess()) {
         // Create Note when not present to satisfy checks...
         JSONObject note = createNoteForOccurrence(occurrence);
-        //log(String.format("Created JSON: %s", note.toJSONString()));
         int cveIndex = noteUrl.lastIndexOf('/');
         String url = (cveIndex != -1) ? noteUrl.substring(0, cveIndex) : noteUrl;
         String postQuery = String.format("%s=%s", GRAFEAS_NOTEID_QUERY_PARAM, note.get("shortDescription"));
