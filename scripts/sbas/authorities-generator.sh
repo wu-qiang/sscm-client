@@ -46,6 +46,6 @@ do
     echo "${ATTESTATION_AUTHORITY_TEMPLATE}" | \
         sed -e 's!@ATTESTATION_NAME@!'"$name"'!' \
             -e 's!@ATTESTATION_KEY@!'"$key"'!' \
-            >"${ATTESTATION_AUTHORITY_FILE}"
+            >> "${ATTESTATION_AUTHORITY_FILE}"
 done
 
