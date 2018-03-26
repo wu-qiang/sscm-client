@@ -29,7 +29,9 @@ if [ $? -ne 0 -o -z "$names" ]; then
     exit 1
 fi
 
+mkdir -p $(dirname ${ATTESTATION_AUTHORITY_FILE})
 rm -f "${ATTESTATION_AUTHORITY_FILE}"
+
 echo "[" > "${ATTESTATION_AUTHORITY_FILE}"
 
 first_time=true
