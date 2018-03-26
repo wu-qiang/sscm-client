@@ -25,13 +25,15 @@ cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/authorities-generator.sh $SCRIPTS
 
 echo "chmod +x $SCRIPTS_DIR/*"
 chmod +x $SCRIPTS_DIR/*
-echo "ls -ld $WERCKER_CACHE_DIR/*.sh"
-ls -ld $WERCKER_CACHE_DIR/*.sh
 
-echo "Execute: $SSCM_BUILD_DIR/sscm-client/scripts/grafeas/provision-grafeas.sh"
-#$SSCM_BUILD_DIR/sscm-client/scripts/grafeas/provision-grafeas.sh
-echo "Execute: $SSCM_BUILD_DIR/sscm-client/scripts/sbas/authorities-generator.sh"
-#$SSCM_BUILD_DIR/sscm-client/scripts/sbas/authorities-generator.sh
+echo "Execute: $SCRIPTS_DIR/authorities-generator.sh"
+$SCRIPTS_DIR/authorities-generator.sh
+
+echo "ls -l $SCRIPTS_DIR"
+ls -l $SCRIPTS_DIR
+
+echo "$SCRIPTS_DIR/provision-grafeas.sh \"${GRAFEAS_SERVER_ADDRESS}:${GRAFEAS_SERVER_PORT}\""
+$SCRIPTS_DIR/provision-grafeas.sh "${GRAFEAS_SERVER_ADDRESS}:${GRAFEAS_SERVER_PORT}"
 
 echo "$GPG_SCRIPT --init-keyring"
 $GPG_SCRIPT --init-keyring
