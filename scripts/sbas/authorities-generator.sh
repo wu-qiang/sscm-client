@@ -47,5 +47,5 @@ do
             >> "${ATTESTATION_AUTHORITY_FILE}"
 done
 
-echo ']' > "${ATTESTATION_AUTHORITY_FILE}"
+echo ']' >> "${ATTESTATION_AUTHORITY_FILE}"
 
