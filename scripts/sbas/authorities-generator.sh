@@ -14,7 +14,6 @@ ATTESTATION_AUTHORITY_TEMPLATE=$(cat <<EOF
     {
         "name":"@ATTESTATION_NAME@",
         "public_keys":["@ATTESTATION_KEY@"]
-    }
 EOF
 )
 
@@ -31,8 +30,9 @@ if [ $? -ne 0 -o -z "$names" ]; then
 fi
 
 rm -f "${ATTESTATION_AUTHORITY_FILE}"
-echo '[' > "${ATTESTATION_AUTHORITY_FILE}"
+echo "[" > "${ATTESTATION_AUTHORITY_FILE}"
 
+first_time=true
 for name in $names
 do
     key=$(${GPG_SCRIPT} --get-authority-keyid "$name")
@@ -41,11 +41,17 @@ do
         exit 1
     fi
 
+    if [[ ! -n "$first_time" ]] ; then
+        echo "    }," >> "${ATTESTATION_AUTHORITY_FILE}"
+    else
+        first_time=
+    fi
     echo "${ATTESTATION_AUTHORITY_TEMPLATE}" | \
         sed -e 's!@ATTESTATION_NAME@!'"$name"'!' \
             -e 's!@ATTESTATION_KEY@!'"$key"'!' \
             >> "${ATTESTATION_AUTHORITY_FILE}"
 done
 
-echo ']' >> "${ATTESTATION_AUTHORITY_FILE}"
+echo "    }" >> "${ATTESTATION_AUTHORITY_FILE}"
+echo "]" >> "${ATTESTATION_AUTHORITY_FILE}"
 
