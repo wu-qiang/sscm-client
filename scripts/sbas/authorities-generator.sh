@@ -11,12 +11,10 @@
 #
 
 ATTESTATION_AUTHORITY_TEMPLATE=$(cat <<EOF
-[
     {
         "name":"@ATTESTATION_NAME@",
         "public_keys":["@ATTESTATION_KEY@"]
     }
-]
 EOF
 )
 
@@ -33,7 +31,7 @@ if [ $? -ne 0 -o -z "$names" ]; then
 fi
 
 rm -f "${ATTESTATION_AUTHORITY_FILE}"
-touch "${ATTESTATION_AUTHORITY_FILE}"
+echo '[' > "${ATTESTATION_AUTHORITY_FILE}"
 
 for name in $names
 do
@@ -48,4 +46,6 @@ do
             -e 's!@ATTESTATION_KEY@!'"$key"'!' \
             >> "${ATTESTATION_AUTHORITY_FILE}"
 done
+
+echo ']' > "${ATTESTATION_AUTHORITY_FILE}"
 
