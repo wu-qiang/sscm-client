@@ -21,7 +21,6 @@ public class GPGScriptWrapper {
   private static final String GET_AUTHORITY_KEY_ID = "--get-authority-keyid";
 
   private static final String GPG_SCRIPT_ENV_VAR = "GPG_SCRIPT";
-  private static final String GPG_AUTHORITY_NAME_ENV_VAR = "GPG_AUTHORITY_NAME";
 
   private static String script = System.getenv(GPG_SCRIPT_ENV_VAR);
   private String gpgAuthorityName;
@@ -202,28 +201,35 @@ public class GPGScriptWrapper {
   }
 
   public static void main(String[] args) throws IOException {
-    GPGScriptWrapper scriptWrapper = new GPGScriptWrapper();
     String data = "Grafeas meta data";
-    String base64EncodedSignature = scriptWrapper.sign(data);
 
-    boolean validSig = GPGScriptWrapper.verify(base64EncodedSignature);
+    String[] authorityNames = GPGScriptWrapper.getAuthorityNames();
+    if (authorityNames != null && authorityNames.length > 0) {
+      for (String s : authorityNames) {
+        System.out.println("Using authority name [" + s +"]");
+        GPGScriptWrapper gpgScriptWrapper = new GPGScriptWrapper(s);
 
-    String embeddedKeyID = GPGScriptWrapper.getKeyID(base64EncodedSignature);
+        String base64EncodedSignature = gpgScriptWrapper.sign(data);
+        assert base64EncodedSignature.equals(GPGScriptWrapper.sign(s, data));
 
-    String embeddedData = GPGScriptWrapper.getData(base64EncodedSignature);
+        boolean validSig = GPGScriptWrapper.verify(base64EncodedSignature);
+        assert validSig;
 
-    System.out.println("Java wrapper, base64 encoded signature of [" + data + "]: " + base64EncodedSignature);
-    System.out.println("Java wrapper, is signature [" + base64EncodedSignature + "] valid? " + validSig);
-    System.out.println("Java wrapper, embedded keyID: " + embeddedKeyID);
-    System.out.println("Java wrapper, embedded data: " + embeddedData);
-    String authName = GPGScriptWrapper.getAuthorityNames()[0];
-    System.out.println("Java wrapper, getAuthorityNames(): [" + authName + "]");
-    System.out.println("Java wrapper, System.getenv('GPG_AUTHORITY_NAME_ENV_VAR'): [" + System.getenv(GPG_AUTHORITY_NAME_ENV_VAR) + "]");
-    System.out.println("Java wrapper, getAuthorityKeyID(getAuthorityNames().get(0)): " + GPGScriptWrapper.getAuthorityKeyID(authName));
-    System.out.println("Java wrapper, getAuthorityKeyID(System.getenv('GPG_AUTHORITY_NAME')): " + GPGScriptWrapper.getAuthorityKeyID(System.getenv(GPG_AUTHORITY_NAME_ENV_VAR)));
-    System.out.println("Java wrapper, sign(authority_name, data): " + GPGScriptWrapper.sign(authName, data));
+        // gpg command returns key id with a new line character appended
+        String embeddedKeyID = GPGScriptWrapper.getKeyID(base64EncodedSignature);
+        String authKeyID = GPGScriptWrapper.getAuthorityKeyID(s);
+        assert embeddedKeyID.startsWith(authKeyID) : "key ID from signature[" + embeddedKeyID + "] should be the same as the authority key ID[" + authKeyID + "]";
 
-    GPGScriptWrapper scriptWrapper1 = new GPGScriptWrapper(authName);
-    System.out.println("Java wrapper, signed data with another constructor: " + scriptWrapper1.sign("some data"));
+        // gpg command returns embedded data with a new line character appended
+        String embeddedData = GPGScriptWrapper.getData(base64EncodedSignature);
+        assert embeddedData.startsWith(data);
+
+        System.out.println("Java wrapper, base64 encoded signature of [" + data + "]: [" + base64EncodedSignature + "] with authority name [" + s +"]");
+        System.out.println("Java wrapper, is signature [" + base64EncodedSignature + "] valid? " + validSig);
+        System.out.println("Java wrapper, embedded keyID: [" + embeddedKeyID +"]");
+        System.out.println("Java wrapper, auth keyID: [" + authKeyID +"]");
+        System.out.println("Java wrapper, embedded data: [" + embeddedData +"]");
+      }
+    }
   }
 }
