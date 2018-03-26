@@ -25,20 +25,23 @@ cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/authorities-generator.sh $SCRIPTS
 
 echo "chmod +x $SCRIPTS_DIR/*"
 chmod +x $SCRIPTS_DIR/*
-
-echo "Execute: $SCRIPTS_DIR/authorities-generator.sh"
-$SCRIPTS_DIR/authorities-generator.sh
-
 echo "ls -l $SCRIPTS_DIR"
 ls -l $SCRIPTS_DIR
-
-echo "$SCRIPTS_DIR/provision-grafeas.sh \"${GRAFEAS_SERVER_ADDRESS}:${GRAFEAS_SERVER_PORT}\""
-$SCRIPTS_DIR/provision-grafeas.sh "${GRAFEAS_SERVER_ADDRESS}:${GRAFEAS_SERVER_PORT}"
 
 echo "$GPG_SCRIPT --init-keyring"
 $GPG_SCRIPT --init-keyring
 echo "$GPG_SCRIPT --get-authority-names"
 $GPG_SCRIPT --get-authority-names
-echo "$GPG_SCRIPT --test"
-$GPG_SCRIPT --test
+#echo "$GPG_SCRIPT --test"
+#$GPG_SCRIPT --test
+
+echo "Execute: $SCRIPTS_DIR/authorities-generator.sh"
+$SCRIPTS_DIR/authorities-generator.sh
+echo "ls -ld $ATTESTATION_AUTHORITY_FILE"
+ls -ld $ATTESTATION_AUTHORITY_FILE
+echo "cat $ATTESTATION_AUTHORITY_FILE"
+cat $ATTESTATION_AUTHORITY_FILE
+
+echo "$SCRIPTS_DIR/provision-grafeas.sh \"${GRAFEAS_SERVER_ADDRESS}:${GRAFEAS_SERVER_PORT}\""
+$SCRIPTS_DIR/provision-grafeas.sh "${GRAFEAS_SERVER_ADDRESS}:${GRAFEAS_SERVER_PORT}"
 
