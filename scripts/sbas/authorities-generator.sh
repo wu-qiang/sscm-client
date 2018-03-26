@@ -22,7 +22,6 @@ if [ -z "${ATTESTATION_AUTHORITY_FILE}" ]; then
     exit 1
 fi
 
-# TODO Support more than one attestation.
 names=$(${GPG_SCRIPT} --get-authority-names)
 if [ $? -ne 0 -o -z "$names" ]; then
     echo "Failed to get the attestation authority names!" >&2
