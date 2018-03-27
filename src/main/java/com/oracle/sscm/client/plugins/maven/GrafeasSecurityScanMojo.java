@@ -25,6 +25,7 @@ import net.minidev.json.parser.JSONParser;
 
 import io.grafeas.v1alpha1.model.Attestation;
 import io.grafeas.v1alpha1.model.PgpSignedAttestation;
+import com.oracle.sscm.client.grafeas.GrafeasUtilities;
 import com.oracle.sscm.client.script.GPGScriptWrapper;
 
 @Mojo(name = "generateOccurrences")
@@ -38,6 +39,9 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
     @Parameter(property = "authorityName", defaultValue = "SecurityScan")
     private String authorityName;
+
+    @Parameter(property = "securityScanResource", defaultValue = "target/weblogic-kubernetes-operator-0.1.0.jar")
+    private String securityScanResource;
 
     /* @Parameter(property = "securityScanPublicKey")
     private String securityScanPublicKey;
@@ -126,14 +130,19 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
         //generate resourceUrl for this scan
         scanTarget = projectId + "-" + PROJECT_VERSION + ".jar";
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(scanTarget.getBytes("UTF-8"));
+
+        /* MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(scanTarget.getBytes("UTF-8"));*/
+
+        byte[] hash = GrafeasUtilities.createHashForFile(securityScanResource);
+
         StringBuffer hexString = new StringBuffer();
         for (int i = 0; i < hash.length; i++) {
            String hex = Integer.toHexString(0xff & hash[i]);
            if(hex.length() == 1) hexString.append('0');
            hexString.append(hex);
         }
+
         scanResourceUrl = "file://sha-256:" + hexString.toString() + ":" + scanTarget;
         attest = createAttestation(scanResourceUrl);        
 
@@ -237,6 +246,14 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
     public void setAuthorityName(String authorityName) {
         this.authorityName = authorityName;
+    }
+
+    public String getSecurityScanResource() {
+        return securityScanResource;
+    }
+
+    public void setSecurityScanResource(String securityScanResource) {
+        this.securityScanResource = securityScanResource;
     }
 
     /* public String getSecurityScanPublicKey() {
