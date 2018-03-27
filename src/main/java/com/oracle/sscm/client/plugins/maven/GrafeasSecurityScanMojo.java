@@ -131,10 +131,10 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         //generate resourceUrl for this scan
         scanTarget = projectId + "-" + PROJECT_VERSION + ".jar";
 
-        /* MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(scanTarget.getBytes("UTF-8"));*/
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(scanTarget.getBytes("UTF-8"));
 
-        byte[] hash = GrafeasUtilities.createHashForFile(securityScanResource);
+        //byte[] hash = GrafeasUtilities.createHashForFile(securityScanResource);
 
         StringBuffer hexString = new StringBuffer();
         for (int i = 0; i < hash.length; i++) {
