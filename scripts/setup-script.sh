@@ -22,6 +22,12 @@ echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/grafeas/provision-grafeas.sh $SC
 cp -f $SSCM_BUILD_DIR/sscm-client/scripts/grafeas/provision-grafeas.sh $SCRIPTS_DIR
 echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/authorities-generator.sh $SCRIPTS_DIR"
 cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/authorities-generator.sh $SCRIPTS_DIR
+echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/policy-provision.sh $SCRIPTS_DIR"
+cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/policy-provision.sh $SCRIPTS_DIR
+echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/policy-test.sh $SCRIPTS_DIR"
+cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/policy-test.sh $SCRIPTS_DIR
+echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/kauctl $SCRIPTS_DIR"
+cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/kauctl $SCRIPTS_DIR
 
 echo "chmod +x $SCRIPTS_DIR/*"
 chmod +x $SCRIPTS_DIR/*
@@ -44,4 +50,9 @@ cat $ATTESTATION_AUTHORITY_FILE
 
 echo "Execute: $SCRIPTS_DIR/provision-grafeas.sh \"${GRAFEAS_SERVER_ADDRESS}:${GRAFEAS_SERVER_PORT}\""
 $SCRIPTS_DIR/provision-grafeas.sh "${GRAFEAS_SERVER_ADDRESS}:${GRAFEAS_SERVER_PORT}"
+
+echo "Execute: $SCRIPTS_DIR/policy-provision.sh"
+$SCRIPTS_DIR/policy-provision.sh
+echo "Execute: $SCRIPTS_DIR/policy-test.sh"
+$SCRIPTS_DIR/policy-test.sh
 

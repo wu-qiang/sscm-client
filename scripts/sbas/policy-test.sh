@@ -12,21 +12,6 @@
 # SPHINX_CLIENT_SECRET
 # SPHINX_SERVICE_NAME
 
-SPHINX_REQUEST_TEMPLATE=$(cat <<EOF
-{
-    "serviceName": "${SPHINX_SERVICE_NAME:-grafeas}",
-    "resource": "experimental",
-    "action": "deploy",
-    "attributes": [
-        {
-            "name": "attestations",
-            "value": [@ATTESTATIONS@]
-        }
-    ]
-}
-EOF
-)
-
 names=($(${GPG_SCRIPT} --get-authority-names))
 if [ $? -ne 0 -o ${#names[@]} -lt 1 ]; then
     echo "Failed to get the attestation authority names!" >&2
@@ -42,8 +27,29 @@ if [ $? -ne 0 ]; then
 fi
 token=$(echo "$body" | jq -r '.access_token')
 
-attestations=$(printf ',"%s"' ${names[@]})
 arsurl="${SPHINX_ARS_ENDPOINT:-https://a.authz.fun:6734/bak8dhbp5c8g00dbaup0/authz-check/v1/is-allowed}"
+
+echo "Test request to production cluster" >&2
+prodAttestations=$(printf ',"%s"' ${names[@]})
+cat <<EOF |
+{
+    "serviceName": "${SPHINX_SERVICE_NAME:-grafeas}",
+    "resource": "production",
+    "action": "deploy",
+    "attributes": [
+        {
+            "name": "attestations",
+            "value": [${prodAttestations:1}]
+        }
+    ]
+}
+EOF
+curl -X POST -d @- -H "Authorization: Bearer $token" "$arsurl"
+echo >&2
+
+echo "Test request to experimental cluster" >&2
+excluded=("projects/build-infrastructure/attestationAuthorities/SecurityScan")
+expAttestations=$(printf ',"%s"' ${names[@]/$excluded})
 cat <<EOF |
 {
     "serviceName": "${SPHINX_SERVICE_NAME:-grafeas}",
@@ -52,9 +58,10 @@ cat <<EOF |
     "attributes": [
         {
             "name": "attestations",
-            "value": [${attestations:1}]
+            "value": [${expAttestations:1}]
         }
     ]
 }
 EOF
 curl -X POST -d @- -H "Authorization: Bearer $token" "$arsurl"
+echo >&2

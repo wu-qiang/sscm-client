@@ -20,13 +20,13 @@ declare -a AUTHORITY_NAMES
 declare -A AUTHORITY_PASSPHRASES
 
 AUTHORITY_NAMES[0]="projects/build-infrastructure/attestationAuthorities/Build"
-AUTHORITY_PASSPHRASES[$AUTHORITY_NAMES[0]]="super-secret-0"
+AUTHORITY_PASSPHRASES[${AUTHORITY_NAMES[0]}]="super-secret-0"
 
 AUTHORITY_NAMES[1]="projects/build-infrastructure/attestationAuthorities/Test"
-AUTHORITY_PASSPHRASES[$AUTHORITY_NAMES[1]]="super-secret-1"
+AUTHORITY_PASSPHRASES[${AUTHORITY_NAMES[1]}]="super-secret-1"
 
 AUTHORITY_NAMES[2]="projects/build-infrastructure/attestationAuthorities/SecurityScan"
-AUTHORITY_PASSPHRASES[$AUTHORITY_NAMES[2]]="super-secret-2"
+AUTHORITY_PASSPHRASES[${AUTHORITY_NAMES[2]}]="super-secret-2"
 
 #
 # GPG command and args we want to use
@@ -118,7 +118,7 @@ gpg_sign() {
   local data="$2"
   local tmp=
   tmp=$(gpg_get_authority_key "$authority") || return 1
-  tmp=$(echo "$data" | $gpg_batch_cmd --passphrase "${AUTHORITY_PASSPHRASES[$authority]}" --user "$authority" --sign --armor) || return 1
+  tmp=$(echo "$data" | $gpg_batch_cmd --passphrase "${AUTHORITY_PASSPHRASES[$authority]}" --local-user "$authority" --sign --armor) || return 1
   echo "$tmp" | base64 --wrap=0
   return 0
 }
