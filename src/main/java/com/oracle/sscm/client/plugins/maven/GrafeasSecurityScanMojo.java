@@ -7,12 +7,10 @@ import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Random;
 
@@ -27,13 +25,13 @@ import io.grafeas.v1alpha1.model.Attestation;
 import io.grafeas.v1alpha1.model.PgpSignedAttestation;
 import com.oracle.sscm.client.script.GPGScriptWrapper;
 
-@Mojo(name = "generateOccurrences")
+@Mojo(name = "securityScan")
 public class GrafeasSecurityScanMojo extends AbstractMojo {
 
-    @Parameter(property = "generateOccurrences.dependencyReportJSON", defaultValue = "./dependency-check-report.json")
+    @Parameter(property = "securityScan.dependencyReportJSON", defaultValue = "./dependency-check-report.json")
     private String dependencyReportJSON;
 
-    @Parameter(property = "generateOccurrences.urlGrafeas", defaultValue = "UNKNOWN")
+    @Parameter(property = "securityScan.grafeasUrl", defaultValue = "UNKNOWN")
     private String urlGrafeas;
 
     @Parameter(property = "authorityName", defaultValue = "SecurityScan")
