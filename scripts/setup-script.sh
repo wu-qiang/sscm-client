@@ -56,3 +56,11 @@ $SCRIPTS_DIR/policy-provision.sh
 echo "Execute: $SCRIPTS_DIR/policy-test.sh"
 $SCRIPTS_DIR/policy-test.sh
 
+cd ${WERCKER_SOURCE_DIR}
+declare groupId=$(mvn help:evaluate -Dexpression=project.groupId | grep -v "^\[INFO\]")
+declare artifactId=$(mvn help:evaluate -Dexpression=project.artifactId | grep -v "^\[INFO\]")
+declare version=$(mvn help:evaluate -Dexpression=project.version | grep -v "^\[INFO\]")
+declare timestamp=$(date -u -Ins)
+echo "Generating resourceUrl ..."
+echo "${groupId}:${artifactId}:${version}-${timestamp}" > $RESOURCE_URL_FILE
+cd -
