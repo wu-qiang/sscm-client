@@ -60,8 +60,8 @@ cd ${WERCKER_SOURCE_DIR}
 declare groupId=$(mvn -Dmaven.repo.local=${WERCKER_CACHE_DIR}/.m2 help:evaluate -Dexpression=project.groupId | grep -v "^\[INFO\]")
 declare artifactId=$(mvn -Dmaven.repo.local=${WERCKER_CACHE_DIR}/.m2 help:evaluate -Dexpression=project.artifactId | grep -v "^\[INFO\]")
 declare version=$(mvn -Dmaven.repo.local=${WERCKER_CACHE_DIR}/.m2 help:evaluate -Dexpression=project.version | grep -v "^\[INFO\]")
-declare timestamp=$(date -u -Ins)
+declare timestamp=$(date -u +%Y%m%d-%H%M%S-%N%z)
 echo "Generating resourceUrl ..."
-echo "echo '${groupId}:${artifactId}:${version}-${timestamp}' > $RESOURCE_URL_FILE"
-echo "${groupId}:${artifactId}:${version}-${timestamp}" > $RESOURCE_URL_FILE
-cd -
+echo "echo 'gav://${groupId}:${artifactId}:${version}-${timestamp}' > $RESOURCE_URL_FILE"
+echo "gav://${groupId}:${artifactId}:${version}-${timestamp}" > $RESOURCE_URL_FILE
+
