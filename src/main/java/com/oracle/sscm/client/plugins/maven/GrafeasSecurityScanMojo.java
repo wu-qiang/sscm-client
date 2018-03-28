@@ -38,7 +38,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
     @Parameter(property = "authorityName", defaultValue = "SecurityScan")
     private String authorityName;
 
-    @Parameter(property = "securityScanResource", defaultValue = "target/weblogic-kubernetes-operator-0.1.0.jar")
+    @Parameter(property = "securityScanResource", defaultValue = "$WERCKER_CACHE_DIR/weblogic-kubernetes-operator-0.1.0.jar")
     private String securityScanResource;
 
     /* @Parameter(property = "securityScanPublicKey")
