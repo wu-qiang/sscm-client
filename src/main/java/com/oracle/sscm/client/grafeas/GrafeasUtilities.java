@@ -745,7 +745,7 @@ public class GrafeasUtilities {
 
     // Create a checksum for a file using a message digest.
     //
-    private byte[] createHashForFile(String filename) {
+    public static byte[] createHashForFile(String filename) {
 
         try {
             InputStream fis = new FileInputStream(filename);
