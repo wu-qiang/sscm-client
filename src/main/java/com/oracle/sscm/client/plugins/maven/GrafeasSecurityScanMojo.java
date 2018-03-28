@@ -82,6 +82,11 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       // Setup arguments from parameters...
       boolean postGrafeas = false;
 
+      log("dependencyReportJSON is '" + dependencyReportJSON + "'");
+      log("grafeasUrl is '" + urlGrafeas + "'");
+      log("authorityName is '" + authorityName + "'");
+      log("securityScanResource is '" + securityScanResource + "'");
+
       // Location of dependency-check report
       if (new File(dependencyReportJSON).isDirectory()) {
         StringBuilder file = new StringBuilder(dependencyReportJSON);
