@@ -37,7 +37,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
     @Parameter(property = "authorityName", defaultValue = "SecurityScan")
     private String authorityName;
 
-    @Parameter(property = "securityScanResource", defaultValue = "target/weblogic-kubernetes-operator-0.1.0.jar")
+    @Parameter(property = "securityScanResource", defaultValue = "$WERCKER_CACHE_DIR/weblogic-kubernetes-operator-0.1.0.jar")
     private String securityScanResource;
 
     /* @Parameter(property = "securityScanPublicKey")
@@ -136,7 +136,9 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(scanTarget.getBytes("UTF-8"));
 
-        //byte[] hash = GrafeasUtilities.createHashForFile(securityScanResource);
+        /* log("Generating checksum for security scan resource");
+        byte[] hash = GrafeasUtilities.createHashForFile(securityScanResource);
+        log("Checksum for security scan resource: " + hash.toString()); */
 
         StringBuffer hexString = new StringBuffer();
         for (int i = 0; i < hash.length; i++) {
