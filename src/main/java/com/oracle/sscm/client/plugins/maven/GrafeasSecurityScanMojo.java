@@ -23,7 +23,6 @@ import net.minidev.json.parser.JSONParser;
 
 import io.grafeas.v1alpha1.model.Attestation;
 import io.grafeas.v1alpha1.model.PgpSignedAttestation;
-import com.oracle.sscm.client.grafeas.GrafeasUtilities;
 import com.oracle.sscm.client.script.GPGScriptWrapper;
 
 @Mojo(name = "securityScan")
@@ -33,7 +32,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
     private String dependencyReportJSON;
 
     @Parameter(property = "securityScan.grafeasUrl", defaultValue = "UNKNOWN")
-    private String urlGrafeas;
+    private String grafeasUrl;
 
     @Parameter(property = "authorityName", defaultValue = "SecurityScan")
     private String authorityName;
@@ -83,7 +82,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       boolean postGrafeas = false;
 
       log("dependencyReportJSON is '" + dependencyReportJSON + "'");
-      log("grafeasUrl is '" + urlGrafeas + "'");
+      log("grafeasUrl is '" + grafeasUrl + "'");
       log("authorityName is '" + authorityName + "'");
       log("securityScanResource is '" + securityScanResource + "'");
 
@@ -95,9 +94,9 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       }
 
       // Location of Grafeas API server
-      if (!urlGrafeas.equals("UNKNOWN")) {
+      if (!grafeasUrl.equals("UNKNOWN")) {
         postGrafeas = true;
-        if (!urlGrafeas.endsWith(URL_SLASH)) urlGrafeas += URL_SLASH;
+        if (!grafeasUrl.endsWith(URL_SLASH)) grafeasUrl += URL_SLASH;
       }
 
       // Show command line and status when uploading otherwise output
@@ -105,7 +104,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       if (postGrafeas) {
         StringBuilder main = new StringBuilder();
         main.append("\n").append(GrafeasSecurityScanMojo.class.getName());
-        main.append(" ").append(dependencyReportJSON).append(" ").append(urlGrafeas);
+        main.append(" ").append(dependencyReportJSON).append(" ").append(grafeasUrl);
         log(main.toString());
       }
 
@@ -200,17 +199,17 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       // NOTE: The Grafeas URL specified on command line was checked
       //       to ensure that there is a trailing '/' character...
       //
-     String urlGrafeasNotes = urlGrafeas + GRAFEAS_NOTES;
-     String urlGrafeasNotePrefix = urlGrafeas + GRAFEAS_NOTE_NAME_PREFIX;
-     String urlGrafeasOccurrences = String.format(GRAFEAS_OCCURRENCES, urlGrafeas, projectId);
+     String grafeasNotesUrl = grafeasUrl + GRAFEAS_NOTES;
+     String grafeasNotesUrlPrefix = grafeasUrl + GRAFEAS_NOTE_NAME_PREFIX;
+     String grafeasOccurrencesUrl = String.format(GRAFEAS_OCCURRENCES, grafeasUrl, projectId);
      try {
        JSONArray listOccurrences = (JSONArray) occurrences.get("occurrences");
         if ((listOccurrences != null) && (listOccurrences.size() > 0)) {
           if (postGrafeas) {
-            log("Creating Notes at: " + urlGrafeasNotes);
-            log("Creating Occurrences at: " + urlGrafeasOccurrences);
+            log("Creating Notes at: " + grafeasNotesUrl);
+            log("Creating Occurrences at: " + grafeasOccurrencesUrl);
 
-            uploadOccurrenceList(listOccurrences, urlGrafeasNotePrefix, urlGrafeasOccurrences);
+            uploadOccurrenceList(listOccurrences, grafeasNotesUrlPrefix, grafeasOccurrencesUrl);
           }
           else {
             log(occurrences.toJSONString());
@@ -235,12 +234,12 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       this.dependencyReportJSON = dependencyReportJSON;
     }
 
-    public String getUrlGrafeas() {
-        return urlGrafeas;
+    public String getGrafeasUrl() {
+        return grafeasUrl;
     }
 
-    public void setUrlGrafeas(String urlGrafeas) {
-        this.urlGrafeas = urlGrafeas;
+    public void setGrafeasUrl(String grafeasUrl) {
+        this.grafeasUrl = grafeasUrl;
     }
 
     public String getAuthorityName() {
