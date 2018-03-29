@@ -85,6 +85,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
       log("dependencyReportJSON is '" + dependencyReportJSON + "'");
       log("grafeasUrl is '" + grafeasUrl + "'");
+      log("resourceUrl is '" + resourceUrl + "'");
       log("authorityName is '" + authorityName + "'");
       // log("securityScanResource is '" + securityScanResource + "'");
 
