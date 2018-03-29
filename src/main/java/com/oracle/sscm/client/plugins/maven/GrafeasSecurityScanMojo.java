@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
-import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
@@ -34,11 +33,14 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
     @Parameter(property = "securityScan.grafeasUrl", defaultValue = "UNKNOWN")
     private String grafeasUrl;
 
+    @Parameter(property = "securityScan.resourceUrl", defaultValue = "UNKNOWN")
+    private String resourceUrl;
+
     @Parameter(property = "authorityName", defaultValue = "SecurityScan")
     private String authorityName;
 
-    @Parameter(property = "securityScanResource", defaultValue = "$WERCKER_CACHE_DIR/weblogic-kubernetes-operator-0.1.0.jar")
-    private String securityScanResource;
+    // @Parameter(property = "securityScanResource", defaultValue = "$WERCKER_CACHE_DIR/weblogic-kubernetes-operator-0.1.0.jar")
+    // private String securityScanResource;
 
     /* @Parameter(property = "securityScanPublicKey")
     private String securityScanPublicKey;
@@ -84,7 +86,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       log("dependencyReportJSON is '" + dependencyReportJSON + "'");
       log("grafeasUrl is '" + grafeasUrl + "'");
       log("authorityName is '" + authorityName + "'");
-      log("securityScanResource is '" + securityScanResource + "'");
+      // log("securityScanResource is '" + securityScanResource + "'");
 
       // Location of dependency-check report
       if (new File(dependencyReportJSON).isDirectory()) {
@@ -118,9 +120,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       // Parse the OWSAP dependency-check-report.json...
       JSONObject report = null;
       String projectId = null;
-      String scanTarget = null;
       Attestation attest = null;
-      String scanResourceUrl = null;
       JSONObject attestationOccurrence = new JSONObject();
 
       try {
@@ -130,31 +130,13 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         String projectReportDate = (projectInfo != null) ? (String) projectInfo.get("reportDate") : "UNKNOWN";
         projectId = (projectInfo != null) ? (String) projectInfo.get("name"): "UNKNOWN";
 
-        //generate resourceUrl for this scan
-        scanTarget = projectId + "-" + PROJECT_VERSION + ".jar";
-
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(scanTarget.getBytes("UTF-8"));
-
-        /* log("Generating checksum for security scan resource");
-        byte[] hash = GrafeasUtilities.createHashForFile(securityScanResource);
-        log("Checksum for security scan resource: " + hash.toString()); */
-
-        StringBuffer hexString = new StringBuffer();
-        for (int i = 0; i < hash.length; i++) {
-           String hex = Integer.toHexString(0xff & hash[i]);
-           if(hex.length() == 1) hexString.append('0');
-           hexString.append(hex);
-        }
-
-        scanResourceUrl = "file://sha-256:" + hexString.toString() + ":" + scanTarget;
-        attest = createAttestation(scanResourceUrl);        
+        attest = createAttestation(resourceUrl);
 
         //generate security scan attestation occurrence
         String attestationName = GRAFEAS_PROJECTS + projectId + URL_SLASH + GRAFEAS_OCCURRENCES_KEY
                                  + SECURITY_SCAN_ATTEST + "-" + generateRandomChars(RANDOMID_CANDIDATE_CHARS,20);
         attestationOccurrence.put("name", attestationName);
-        attestationOccurrence.put("resourceUrl", scanResourceUrl);
+        attestationOccurrence.put("resourceUrl", resourceUrl);
         String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
         attestationOccurrence.put("noteName", attestNoteName);
         attestationOccurrence.put("kind", "KIND_UNSPECIFIED");
@@ -174,7 +156,7 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       // Generate Grafeas Occurrences base on reported vulnerabilities...
       JSONObject occurrences = new JSONObject();
       try {
-        JSONArray listOccurrences = generateOccurrenceList(report, scanResourceUrl);
+        JSONArray listOccurrences = generateOccurrenceList(report, resourceUrl);
         listOccurrences.add(attestationOccurrence);
         if (listOccurrences != null) {
           occurrences.put("occurrences", listOccurrences);
@@ -252,13 +234,13 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         this.authorityName = authorityName;
     }
 
-    public String getSecurityScanResource() {
+    /* public String getSecurityScanResource() {
         return securityScanResource;
     }
 
     public void setSecurityScanResource(String securityScanResource) {
         this.securityScanResource = securityScanResource;
-    }
+    }*/
 
     /* public String getSecurityScanPublicKey() {
         return securityScanPublicKey;
