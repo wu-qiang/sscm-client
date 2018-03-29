@@ -397,6 +397,29 @@ public class GrafeasUtilities {
     }
 
     /**
+     * Creates a new test attestation authority note.
+     *
+     * @throws ApiException if the Api call fails
+     */
+    public void createTestAttestationAuthorityNote(String name, String shortDesc, String longDesc) throws ApiException {
+
+        log("Create attestation authority name = " + name);
+
+        Note note = new Note();
+        note.setName(getNoteName(getInfraName(), name));
+        note.setKind(Note.KindEnum.ATTESTATION_AUTHORITY);
+        note.setShortDescription(shortDesc);
+        note.setLongDescription(longDesc);
+        note.setAttestationAuthority(createAuthority(name));
+        note.setCreateTime(getCurrenttime());
+        //note.setOperationName(CREATE_AUTHORITY_NOTE_OPERATION);
+
+        Note createdNote = api.createNote(getProjectName(), name, note);
+
+        log("Created test attestation authority note = " + createdNote);
+    }
+
+    /**
      * Return true if build attestation metadata note already exists, false otherwise.
      *
      * @throws ApiException if the Api call fails
@@ -444,6 +467,30 @@ public class GrafeasUtilities {
 
         occurrence.setCreateTime(getCurrenttime());
         occurrence.setOperationName(CREATE_ATTESTATION_OCCURRENCE_OPERATION);
+
+        occurrence.setAttestation(createAttestation(occurrence.getResourceUrl()));
+
+        Occurrence createdAttestationOccurrence = api.createOccurrence(getProjectName(), occurrence);
+
+        log("Created attestation occurrence  = " + createdAttestationOccurrence);
+    }
+
+    /**
+     * Creates a new Test Attestation Authority occurrence.
+     *
+     * @throws ApiException if the Api call fails
+     */
+    public void createTestAttestationOccurrence(String occurrenceName, String occurrenceUrl, String noteName) throws ApiException, IOException {
+
+        Occurrence occurrence = new Occurrence();
+        occurrence.setName(getOccurrenceName(projectName, occurrenceName));
+        occurrence.setResourceUrl(occurrenceUrl);
+        occurrence.setNoteName(getNoteName(infraName, noteName));
+        // TBD: client-java gets error on setting kind to attestation.
+        //occurrence.setKind(Occurrence.KindEnum.ATTESTATION);
+
+        occurrence.setCreateTime(getCurrenttime());
+        //occurrence.setOperationName(CREATE_ATTESTATION_OCCURRENCE_OPERATION);
 
         occurrence.setAttestation(createAttestation(occurrence.getResourceUrl()));
 
