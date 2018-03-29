@@ -252,6 +252,10 @@ PROJECT_NAME="$1"
 RESOURCE_URL="$2"
 CLUSTER_NAME="$3"
 
+echo "PROJECT_NAME is '$PROJECT_NAME'"
+echo "RESOURCE_URL is '$RESOURCE_URL'"
+echo "CLUSTER_NAME is '$CLUSTER_NAME'"
+
 GRAFEAS_ENDPOINT="http://${GRAFEAS_SERVER_ADDRESS}:{$GRAFEAS_SERVER_PORT}"
 if [ -z "${GRAFEAS_ENDPOINT}" ]; then
     echo "Not get Grafeas endpoint, please check the environment variables \"GRAFEAS_SERVER_ADDRESS\" and \"GRAFEAS_SERVER_PORT\"!"
