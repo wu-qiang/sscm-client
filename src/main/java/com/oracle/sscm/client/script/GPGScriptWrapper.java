@@ -23,34 +23,13 @@ public class GPGScriptWrapper {
   private static final String GPG_SCRIPT_ENV_VAR = "GPG_SCRIPT";
 
   private static String script = System.getenv(GPG_SCRIPT_ENV_VAR);
-  private String gpgAuthorityName;
-
-  static {
-    initKeyRing();
-  }
 
   /**
    * Use the GPG_SCRIPT, environment variable defined in the Wercker pipeline
    * Use the first element from the getAuthorityNames() list as the authority name
    */
   public GPGScriptWrapper() {
-    try {
-      gpgAuthorityName = getAuthorityNames()[0];
-    } catch (IOException ioe) {
-      System.err.println("Failed to get the Authority Names: " + ioe);
-      throw new IllegalStateException("Authority name is not defined.");
-    }
   }
-
-
-  /**
-   * Use the GPG_SCRIPT, environment variable defined in the Wercker pipeline
-   * @param gpgAuthorityName full name of an attestation authority
-   */
-  public GPGScriptWrapper(String gpgAuthorityName) {
-    this.gpgAuthorityName = gpgAuthorityName;
-  }
-
 
   /**
    *
@@ -75,19 +54,6 @@ public class GPGScriptWrapper {
 
     return exitCode == 0;
   }
-
-
-  /**
-   *
-   * Sign the data with the authority name from getAuthorityNames().get(0)
-   *
-   * @param data data to be signed
-   * @return  Base64 encoding of the signature
-   */
-  public String sign(String data) throws IOException {
-    return execScript(new String[] {script, SIGN, gpgAuthorityName, data});
-  }
-
 
   /**
    *
@@ -207,10 +173,8 @@ public class GPGScriptWrapper {
     if (authorityNames != null && authorityNames.length > 0) {
       for (String s : authorityNames) {
         System.out.println("Using authority name [" + s +"]");
-        GPGScriptWrapper gpgScriptWrapper = new GPGScriptWrapper(s);
 
-        String base64EncodedSignature = gpgScriptWrapper.sign(data);
-        assert base64EncodedSignature.equals(GPGScriptWrapper.sign(s, data));
+        String base64EncodedSignature = GPGScriptWrapper.sign(s, data);
 
         boolean validSig = GPGScriptWrapper.verify(base64EncodedSignature);
         assert validSig;

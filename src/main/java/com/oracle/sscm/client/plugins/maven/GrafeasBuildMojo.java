@@ -97,12 +97,11 @@ public class GrafeasBuildMojo extends AbstractMojo {
             // Setup arguments from parameters...
             utils = getUtils(true);
 
-            if (!utils.doesAttestationAuthorityNoteExist(authorityName)) {
-                utils.createAttestationAuthorityNote(authorityName, infraName + ":" + authorityName, builderDescription);
-                log("\nCreated Build Attestation Note Metadata.");
-            }
-            uniqueId = authorityName + System.currentTimeMillis();
-            utils.createAttestationOccurrence(uniqueId, resourceUrl, authorityName);
+            //if (!utils.doesAttestationAuthorityNoteExist(authorityName)) {
+            //    utils.createAttestationAuthorityNote(authorityName, infraName + ":" + authorityName, builderDescription);
+            //    log("\nCreated Build Attestation Note Metadata.");
+            //}
+            utils.createAttestationOccurrence(authorityName, resourceUrl);
             log("\nGenerated Build Attestation.");
         } catch (Exception e) {
             throw new MojoExecutionException("Error loading build metatdata into grafeas", e);

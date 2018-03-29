@@ -24,14 +24,8 @@ import io.grafeas.v1alpha1.model.Hash;
 import io.grafeas.v1alpha1.model.Note;
 import io.grafeas.v1alpha1.model.Occurrence;
 import io.grafeas.v1alpha1.model.Empty;
-import io.grafeas.v1alpha1.model.Operation;
-import io.grafeas.v1alpha1.model.ListNoteOccurrencesResponse;
-import io.grafeas.v1alpha1.model.ListNotesResponse;
-import io.grafeas.v1alpha1.model.ListOccurrencesResponse;
-import io.grafeas.v1alpha1.model.ListOperationsResponse;
 import io.grafeas.v1alpha1.model.PgpSignedAttestation;
 import io.grafeas.v1alpha1.model.Source;
-import io.grafeas.v1alpha1.model.UpdateOperationRequest;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.zip.Adler32;
 import java.util.zip.CheckedInputStream;
 
@@ -57,6 +50,7 @@ public class GrafeasUtilities {
     private final String PROJECTS = "projects";
     private final String NOTES = "notes";
     private final String OCCURRENCES = "occurrences";
+    private final String AUTHORITIES = "attestationAuthorities";
     private final String BUILDER_VERSION = "Version 0.1";
     private final String CREATE_BUILD_NOTE_OPERATION = "createBuildDetailsNote";
     private final String CREATE_AUTHORITY_NOTE_OPERATION = "createBuildAttestationAuthorityNote";
@@ -112,6 +106,12 @@ public class GrafeasUtilities {
             urlPath = "http://localhost:8080";
         }
         api.getApiClient().setBasePath(urlPath);
+    }
+
+    public static GrafeasUtilities getGrafeasUtilitiesWithDemoDefaults(String urlPath) {
+        GrafeasUtilities utils = new GrafeasUtilities(urlPath, "weblogic-kubernetes-operator");
+        utils.setInfraName("build-infrastructure");
+        return utils;
     }
 
     /**
@@ -401,6 +401,7 @@ public class GrafeasUtilities {
      *
      * @throws ApiException if the Api call fails
      */
+    /*
     public void createTestAttestationAuthorityNote(String name, String shortDesc, String longDesc) throws ApiException {
 
         log("Create attestation authority name = " + name);
@@ -418,6 +419,7 @@ public class GrafeasUtilities {
 
         log("Created test attestation authority note = " + createdNote);
     }
+    */
 
     /**
      * Return true if build attestation metadata note already exists, false otherwise.
@@ -456,43 +458,18 @@ public class GrafeasUtilities {
      *
      * @throws ApiException if the Api call fails
      */
-    public void createAttestationOccurrence(String occurrenceName, String occurrenceUrl, String noteName) throws ApiException, IOException {
+    public void createAttestationOccurrence(String authorityName, String resourceUrl) throws ApiException, IOException {
 
         Occurrence occurrence = new Occurrence();
-        occurrence.setName(getOccurrenceName(projectName, occurrenceName));
-        occurrence.setResourceUrl(occurrenceUrl);
-        occurrence.setNoteName(getNoteName(infraName, noteName));
-        // TBD: client-java gets error on setting kind to attestation.
-        //occurrence.setKind(Occurrence.KindEnum.ATTESTATION);
+        occurrence.setName(getOccurrenceName(projectName, authorityName + "Attestation-" + System.currentTimeMillis()));
+        occurrence.setResourceUrl(resourceUrl);
+        occurrence.setNoteName(getNoteName(infraName, authorityName + "AttestationAuthority"));
+        occurrence.setKind(Occurrence.KindEnum.ATTESTATION_AUTHORITY);
 
         occurrence.setCreateTime(getCurrenttime());
         occurrence.setOperationName(CREATE_ATTESTATION_OCCURRENCE_OPERATION);
 
-        occurrence.setAttestation(createAttestation(occurrence.getResourceUrl()));
-
-        Occurrence createdAttestationOccurrence = api.createOccurrence(getProjectName(), occurrence);
-
-        log("Created attestation occurrence  = " + createdAttestationOccurrence);
-    }
-
-    /**
-     * Creates a new Test Attestation Authority occurrence.
-     *
-     * @throws ApiException if the Api call fails
-     */
-    public void createTestAttestationOccurrence(String occurrenceName, String occurrenceUrl, String noteName) throws ApiException, IOException {
-
-        Occurrence occurrence = new Occurrence();
-        occurrence.setName(getOccurrenceName(projectName, occurrenceName));
-        occurrence.setResourceUrl(occurrenceUrl);
-        occurrence.setNoteName(getNoteName(infraName, noteName));
-        // TBD: client-java gets error on setting kind to attestation.
-        //occurrence.setKind(Occurrence.KindEnum.ATTESTATION);
-
-        occurrence.setCreateTime(getCurrenttime());
-        //occurrence.setOperationName(CREATE_ATTESTATION_OCCURRENCE_OPERATION);
-
-        occurrence.setAttestation(createAttestation(occurrence.getResourceUrl()));
+        occurrence.setAttestation(createSignedAttestation(getAuthorityName(authorityName), resourceUrl));
 
         Occurrence createdAttestationOccurrence = api.createOccurrence(getProjectName(), occurrence);
 
@@ -720,22 +697,22 @@ public class GrafeasUtilities {
 
     // Return Attestation
     //
-    private Attestation createAttestation(String data) throws IOException {
+    private Attestation createSignedAttestation(String authorityName, String resourceUrl) throws IOException {
         PgpSignedAttestation signedAttest = new PgpSignedAttestation();
 
         GPGScriptWrapper gpg = new GPGScriptWrapper();
 
-        String signedData = gpg.sign(data);
-        String key = gpg.getKeyID(signedData);
+        String signedData = GPGScriptWrapper.sign(authorityName, resourceUrl);
+        String key = GPGScriptWrapper.getKeyID(signedData);
 
-        if (signedData != null && key != null) {
-
-            // Create signature with key id
-            signedAttest.setSignature(signedData);
-            signedAttest.setContentType(PgpSignedAttestation.ContentTypeEnum.SIMPLE_SIGNING_JSON);
-
-            signedAttest.setPgpKeyId(key);
+        if (signedData == null || key == null) {
+            throw new IllegalStateException("Null signedData or key!");
         }
+
+        // Create signature with key id
+        signedAttest.setSignature(signedData);
+        signedAttest.setContentType(PgpSignedAttestation.ContentTypeEnum.CONTENT_TYPE_UNSPECIFIED);
+        signedAttest.setPgpKeyId(key);
 
         Attestation attest = new Attestation();
         attest.setPgpSignedAttestation(signedAttest);
@@ -763,6 +740,12 @@ public class GrafeasUtilities {
     //
     private String getOccurrenceName(String project, String name) {
         return getProjectPrefix(project) + "/" + OCCURRENCES + "/" + name;
+    }
+
+    // Get authority name - projects/<project name>/attestationAuthorities/<authority name>
+    //
+    private String getAuthorityName(String name) {
+        return getProjectPrefix(getInfraName()) + "/" + AUTHORITIES + "/" + name;
     }
 
     // Create a checksum for a file using a message digest.

@@ -1,5 +1,6 @@
 package com.oracle.sscm.client.plugins.maven;
 
+import com.oracle.sscm.client.grafeas.GrafeasUtilities;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -121,8 +122,6 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       // Parse the OWSAP dependency-check-report.json...
       JSONObject report = null;
       String projectId = null;
-      Attestation attest = null;
-      JSONObject attestationOccurrence = new JSONObject();
 
       try {
         if (postGrafeas) log("OWASP dependency-check report: " + projectReportCompleteFileName);
@@ -130,18 +129,6 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         JSONObject projectInfo = (JSONObject) report.get("projectInfo");
         String projectReportDate = (projectInfo != null) ? (String) projectInfo.get("reportDate") : "UNKNOWN";
         projectId = (projectInfo != null) ? (String) projectInfo.get("name"): "UNKNOWN";
-
-        attest = createAttestation(resourceUrl);
-
-        //generate security scan attestation occurrence
-        String attestationName = GRAFEAS_PROJECTS + projectId + URL_SLASH + GRAFEAS_OCCURRENCES_KEY
-                                 + SECURITY_SCAN_ATTEST + "-" + generateRandomChars(RANDOMID_CANDIDATE_CHARS,20);
-        attestationOccurrence.put("name", attestationName);
-        attestationOccurrence.put("resourceUrl", resourceUrl);
-        String attestNoteName = GRAFEAS_PROJECTS + GRAFEAS_NOTES_PROJECTID + URL_SLASH + "notes/SecurityScan";
-        attestationOccurrence.put("noteName", attestNoteName);
-        attestationOccurrence.put("kind", "KIND_UNSPECIFIED");
-        attestationOccurrence.put("attestation", attest.toString());
 
         if (postGrafeas) {
           log("OWASP dependency-check report was generated on: " + projectReportDate);
@@ -158,7 +145,6 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
       JSONObject occurrences = new JSONObject();
       try {
         JSONArray listOccurrences = generateOccurrenceList(report, resourceUrl);
-        listOccurrences.add(attestationOccurrence);
         if (listOccurrences != null) {
           occurrences.put("occurrences", listOccurrences);
           if (postGrafeas) log("Grafeas Occurrences generated: " + listOccurrences.size());
@@ -206,6 +192,15 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         log("Exception: " + e.toString());
         e.printStackTrace();
         System.exit(1);
+      }
+
+      if (postGrafeas) {
+         log("Creating SecurityScan attestation");
+         try {
+             GrafeasUtilities.getGrafeasUtilitiesWithDemoDefaults(grafeasUrl).createAttestationOccurrence(authorityName, resourceUrl);
+         } catch(Throwable t) {
+             log("Caught something while creating attestation: " + t);
+         }
       }
 
       if (postGrafeas) log("\nDone.");
@@ -537,29 +532,6 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
         //}
         createOccurrence(occurrencesUrl, occurrence);
       }
-    }
-
-    private Attestation createAttestation(String data) throws IOException {
-        PgpSignedAttestation signedAttest = new PgpSignedAttestation();
-
-        GPGScriptWrapper gpg = new GPGScriptWrapper();
-
-        String signedData = gpg.sign(data);
-        String key = gpg.getKeyID(signedData);
-
-        if (signedData != null && key != null) {
-
-            // Create signature with key id
-            signedAttest.setSignature(signedData);
-            signedAttest.setContentType(PgpSignedAttestation.ContentTypeEnum.SIMPLE_SIGNING_JSON);
-
-            signedAttest.setPgpKeyId(key);
-        }
-
-        Attestation attest = new Attestation();
-        attest.setPgpSignedAttestation(signedAttest);
-        log("created attestation : " + attest.toString());
-        return attest;
     }
 
     String convertDateFormat(String origDateString, SimpleDateFormat origDateFormat, SimpleDateFormat targetDateFormat) {
