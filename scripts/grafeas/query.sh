@@ -68,9 +68,9 @@ if [ "$help" == 1 ]; then
   echo -e "\t--note or -n Name of the note to find in a given project or '*'"
   echo -e "\t--occurrence or -o Name of the occurrence or '*'"
   echo -e "\t--select or -s Select criteria for the JSON object field using a dot limited notation. See examples below."
-  echo -e "\t  query.sh -v -p "weblogic-kubernetes-operator" -o \"*\" -s ".kind == \"PACKAGE_VULNERABILITY\"" \$GRAFEAS_URL"
-  echo -e "\t  query.sh -v -p "weblogic-kubernetes-operator" -o \"*\" -s ".vulnerabilityDetails.severity == \"HIGH\"" \$GRAFEAS_URL"
-  echo -e "\t  query.sh -v -p "weblogic-kubernetes-operator" -o \"*\" -s "\".name \| contains\(\"SecurityScan\"\)\"" \$GRAFEAS_URL"
+  echo -e '\t  query.sh -v -p "weblogic-kubernetes-operator" -o "*" -s ".kind == \\"PACKAGE_VULNERABILITY\\"" $GRAFEAS_URL'
+  echo -e '\t  query.sh -v -p "weblogic-kubernetes-operator" -o "*" -s ".vulnerabilityDetails.severity == \\"HIGH\\"" $GRAFEAS_URL'
+  echo -e '\t  query.sh -v -p "weblogic-kubernetes-operator" -o "*" -s ".name | contains(\\"SecurityScan\\")" $GRAFEAS_URL'
   echo -e "\t--verbose or -v"
   echo -e "\t--help or -h"
   exit
