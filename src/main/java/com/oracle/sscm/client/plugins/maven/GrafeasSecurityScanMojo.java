@@ -616,11 +616,10 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
     private void createOccurrence(String occurrenceUrl, JSONObject occurrence) throws Exception {
       log(String.format("Creating Occurrence for '%s'", occurrence.get("resourceUrl")));
-      log(String.format("Occurrence string escape is '%s'", JSONObject.escape(occurrence.toJSONString())));
-      log(String.format("Occurrence string is '%s'", occurrence.toString()));
+      log(String.format("Occurrence string unescape is '%s'", occurrence.toJSONString().replace("\\/\\/", "//")));
       HTTPRequest request = new HTTPRequest(HTTPRequest.Method.POST, new URL(occurrenceUrl));
       request.setHeader("Content-Type", "application/json");
-      request.setQuery(occurrence.toJSONString());
+      request.setQuery(occurrence.toJSONString().replace("\\/\\/", "//"));
       HTTPResponse response = request.send();
       if (!response.indicatesSuccess())
         throw new IOException("Failed to create Occurrence: " + response.getContent());
