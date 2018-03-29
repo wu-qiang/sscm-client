@@ -616,7 +616,8 @@ public class GrafeasSecurityScanMojo extends AbstractMojo {
 
     private void createOccurrence(String occurrenceUrl, JSONObject occurrence) throws Exception {
       log(String.format("Creating Occurrence for '%s'", occurrence.get("resourceUrl")));
-      log(String.format("Occurrence string is '%s'", occurrence.toJSONString()));
+      log(String.format("Occurrence string escape is '%s'", JSONObject.escape(occurrence.toJSONString())));
+      log(String.format("Occurrence string is '%s'", occurrence.toString()));
       HTTPRequest request = new HTTPRequest(HTTPRequest.Method.POST, new URL(occurrenceUrl));
       request.setHeader("Content-Type", "application/json");
       request.setQuery(occurrence.toJSONString());
