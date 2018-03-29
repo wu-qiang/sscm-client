@@ -14,6 +14,9 @@ if [ -z "$SCRIPTS_DIR" ] ; then
     exit 1
 fi
 
+echo "rm -fr $SCRIPTS_DIR/*"
+rm -fr $SCRIPTS_DIR/*
+
 echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/pgp/gpg-script.sh $SCRIPTS_DIR"
 cp -f $SSCM_BUILD_DIR/sscm-client/scripts/pgp/gpg-script.sh $SCRIPTS_DIR
 echo "cp -f $SSCM_BUILD_DIR/sscm-client/scripts/sbas/sbas-check.sh $SCRIPTS_DIR"
