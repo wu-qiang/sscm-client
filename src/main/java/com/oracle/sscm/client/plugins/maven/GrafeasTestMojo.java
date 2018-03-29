@@ -65,13 +65,7 @@ public class GrafeasTestMojo extends AbstractMojo {
             // Setup arguments from parameters...
             GrafeasUtilities utils = getUtils();
 
-            log("\nCreating test Attestation Metadata.");
-
-            if (!utils.doesAttestationAuthorityNoteExist(authorityName)) {
-                String desc = infraName + ":" + authorityName;
-                utils.createTestAttestationAuthorityNote(authorityName, desc, desc);
-                log("\nCreated Test Attestation Note Metadata.");
-            }
+            log("\nCreating test Attestation Occurrence.");
 
             String uniqueId = authorityName + System.currentTimeMillis();
             utils.createTestAttestationOccurrence(uniqueId, resourceUrl, authorityName);
