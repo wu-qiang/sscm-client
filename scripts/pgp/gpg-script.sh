@@ -49,7 +49,7 @@ init_homedir() {
     }
   fi
   # For some reason, the mode change doesn't stick across pipelines
-  chmod --changes 700 $GPG_HOMEDIR || {
+  chmod --changes 700 $GPG_HOMEDIR &>/dev/null || {
     echo "Can't change mode 700 for '$GPG_HOMEDIR'!"
     return 1
   }
