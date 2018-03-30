@@ -705,6 +705,10 @@ public class GrafeasUtilities {
         String signedData = GPGScriptWrapper.sign(authorityName, resourceUrl);
         String key = GPGScriptWrapper.getKeyID(signedData);
 
+        log("Authority name: " + authorityName + ", resourceUrl: " + resourceUrl);
+        log( "Signed data: " + signedData);
+        log("Key ID: " + key);
+
         if (signedData == null || key == null) {
             throw new IllegalStateException("Null signedData or key!");
         }
@@ -716,6 +720,8 @@ public class GrafeasUtilities {
 
         Attestation attest = new Attestation();
         attest.setPgpSignedAttestation(signedAttest);
+
+        log("Returning Attestation: " + attest.toString());
 
         return attest;
     }
