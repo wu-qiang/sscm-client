@@ -471,6 +471,8 @@ public class GrafeasUtilities {
 
         occurrence.setAttestation(createSignedAttestation(getAuthorityName(authorityName), resourceUrl));
 
+        log("Attestation occurrence before API call: " + occurrence);
+
         Occurrence createdAttestationOccurrence = api.createOccurrence(getProjectName(), occurrence);
 
         log("Created attestation occurrence  = " + createdAttestationOccurrence);
@@ -705,9 +707,9 @@ public class GrafeasUtilities {
         String signedData = GPGScriptWrapper.sign(authorityName, resourceUrl);
         String key = GPGScriptWrapper.getKeyID(signedData);
 
-        log("Authority name: " + authorityName + ", resourceUrl: " + resourceUrl);
-        log( "Signed data: " + signedData);
-        log("Key ID: " + key);
+        //log("Authority name: " + authorityName + ", resourceUrl: " + resourceUrl);
+        //log( "Signed data: " + signedData);
+        //log("Key ID: " + key);
 
         if (signedData == null || key == null) {
             throw new IllegalStateException("Null signedData or key!");
@@ -721,7 +723,7 @@ public class GrafeasUtilities {
         Attestation attest = new Attestation();
         attest.setPgpSignedAttestation(signedAttest);
 
-        log("Returning Attestation: " + attest.toString());
+        log("Returning Attestation element: " + attest.toString());
 
         return attest;
     }
